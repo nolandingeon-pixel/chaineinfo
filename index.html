@@ -1,117 +1,492 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TV Maison</title>
-  <!-- HLS.js : le moteur qui lit les flux vidéo .m3u8 -->
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      background-color: #0d0d0d;
-      color: #ffffff;
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 15px;
-      text-align: center;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TV Maison</title>
+<!-- hls.js : lit les flux .m3u8 dans les navigateurs de Smart TV -->
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161c25;
+    --line: #2b3542;
+    --text: #f2f5f8;
+    --muted: #a3afbd;
+    --focus: #ffe100;   /* contour jaune très visible */
+    --live: #4da3ff;    /* chaîne en cours */
+    --logo-bg: #f3f4f6;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    height: 100%; margin: 0; overflow: hidden;
+    background: var(--bg); color: var(--text);
+    font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  .app { display: flex; height: 100%; padding: 1.8vh 1.2vw; }
 
-    /* Cadre vidéo géant adapté à la télé */
-    .screen {
-      width: 100%;
-      max-width: 1100px;
-      height: 60vh;
-      margin: 0 auto 20px auto;
-      background: #000;
-      border-radius: 12px;
-      border: 2px solid #222;
-      overflow: hidden;
-    }
-    
-    video, iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
+  /* ---------- Colonne gauche : lecteur ---------- */
+  .stage { width: 70%; display: flex; flex-direction: column; padding-right: 1.2vw; min-width: 0; }
+  .player {
+    position: relative; flex: 1; min-height: 0;
+    background: #000; border-radius: 14px; overflow: hidden;
+  }
+  video, iframe {
+    position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+    border: 0; background: #000; display: none;
+  }
 
-    /* Grille de gros boutons faciles à cliqueter à la télécommande */
-    .grid {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 15px;
-      max-width: 1100px;
-      margin: 0 auto;
-    }
+  .overlay {
+    position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 4vw; background: rgba(13,17,23,.94); z-index: 5;
+  }
+  .overlay.hidden { display: none; }
+  .overlay h2 { margin: 0 0 1.4vh; font-size: clamp(26px, 2.8vw, 56px); font-weight: 600; }
+  .overlay p  { margin: 0 0 3vh; max-width: 40ch; font-size: clamp(18px, 1.7vw, 34px); line-height: 1.45; color: var(--muted); }
 
-    .btn {
-      background: #1a1a1a;
-      color: #fff;
-      border: 3px solid #333;
-      padding: 18px 30px;
-      font-size: 20px;
-      font-weight: bold;
-      border-radius: 10px;
-      cursor: pointer;
-      min-width: 160px;
-    }
+  .banner {
+    position: absolute; left: 2vw; bottom: 3vh; z-index: 6;
+    background: rgba(13,17,23,.88); border-left: 6px solid var(--live);
+    padding: 1.2vh 1.6vw; border-radius: 8px; max-width: 80%;
+    opacity: 0; transition: opacity .25s;
+  }
+  .banner.show { opacity: 1; }
+  .banner strong { display: block; font-size: clamp(22px, 2.2vw, 44px); font-weight: 600; }
+  .banner span { display: block; margin-top: .4vh; font-size: clamp(15px, 1.3vw, 26px); color: var(--muted); }
 
-    /* Contour bleu quand on navigue dessus à la télécommande (focus) */
-    .btn:hover, .btn:focus {
-      background: #0066cc;
-      border-color: #66b2ff;
-      transform: scale(1.05);
-      outline: none;
-    }
-  </style>
+  /* ---------- Barre de contrôle ---------- */
+  .controls { display: flex; align-items: stretch; padding-top: 1.6vh; height: 11vh; }
+  .controls > * { margin-right: .8vw; }
+  .controls > *:last-child { margin-right: 0; }
+  .vol {
+    flex: 0 0 auto; display: flex; align-items: center; justify-content: center;
+    min-width: 11vw; font-size: clamp(16px, 1.5vw, 30px); color: var(--muted);
+  }
+
+  button {
+    font-family: inherit; color: var(--text); cursor: pointer;
+    background: var(--panel); border: 3px solid var(--line); border-radius: 12px;
+    font-size: clamp(16px, 1.5vw, 30px); font-weight: 600;
+    transition: transform .12s, box-shadow .12s;
+  }
+  .controls button { flex: 1; padding: 0 .6vw; }
+  button:disabled { opacity: .35; cursor: default; }
+
+  /* Contour de focus : bien visible à 3 mètres */
+  button:focus {
+    outline: none; position: relative; z-index: 3;
+    border-color: var(--focus);
+    box-shadow: 0 0 0 5px var(--focus), 0 0 26px 6px rgba(255,225,0,.4);
+    transform: scale(1.04);
+  }
+
+  .cta {
+    padding: 1.6vh 3vw; font-size: clamp(20px, 2vw, 40px);
+    background: #1f6feb; border-color: #58a6ff;
+  }
+
+  /* ---------- Colonne droite : chaînes ---------- */
+  .side { width: 30%; display: flex; flex-direction: column; min-width: 0; }
+  .side-title { margin: 0; height: 6vh; line-height: 6vh; padding-left: .5vw; font-size: clamp(20px, 1.9vw, 38px); font-weight: 600; }
+  .grid { flex: 1; display: flex; flex-wrap: wrap; align-content: stretch; min-height: 0; }
+  .cell { width: 50%; height: 25%; padding: .5vw; }
+  .tile { width: 100%; height: 100%; padding: 0; overflow: visible; text-align: center; display: block; }
+  .tile .logo {
+    display: flex; align-items: center; justify-content: center;
+    height: 70%; background: var(--logo-bg); border-radius: 9px 9px 0 0;
+  }
+  .tile img { max-width: 78%; max-height: 74%; }
+  .tile .fallback { display: none; color: #111; font-size: clamp(18px, 1.8vw, 36px); font-weight: 700; }
+  .tile.nologo img { display: none; }
+  .tile.nologo .fallback { display: block; }
+  .tile .name {
+    display: block; height: 30%; line-height: 1; padding-top: 1.1vh;
+    font-size: clamp(13px, 1.15vw, 23px); color: var(--muted); font-weight: 600;
+  }
+  .tile.on { border-color: var(--live); }
+  .tile.on .name { color: var(--live); }
+  .tile.on .name:before {
+    content: ""; display: inline-block; width: .55em; height: .55em;
+    border-radius: 50%; background: var(--live); margin-right: .45em;
+  }
+  .tile:focus .name { color: var(--text); }
+  .hint { height: 5vh; line-height: 5vh; padding-left: .5vw; font-size: clamp(12px, 1vw, 20px); color: var(--muted); }
+
+  /* ---------- Plein écran ---------- */
+  body.fs .stage {
+    position: fixed; left: 0; top: 0; width: 100%; height: 100%;
+    padding: 0; z-index: 50; background: #000;
+  }
+  body.fs .player { border-radius: 0; }
+  body.fs .controls { display: none; }
+</style>
 </head>
 <body>
+<noscript>Cette application nécessite JavaScript.</noscript>
 
-  <!-- Écran principal -->
-  <div class="screen" id="screen">
-    <video id="player" controls autoplay></video>
-  </div>
+<div class="app">
+  <main class="stage" id="stage">
+    <div class="player" id="player">
+      <video id="video" playsinline></video>
+      <iframe id="frame" tabindex="-1" allow="autoplay; fullscreen; picture-in-picture" title="Lecteur de la chaîne"></iframe>
+      <div class="overlay" id="overlay">
+        <h2 id="ovTitle"></h2>
+        <p id="ovText"></p>
+        <button class="cta" id="ovBtn" style="display:none"></button>
+      </div>
+      <div class="banner" id="banner"><strong id="bnTitle"></strong><span id="bnSub"></span></div>
+    </div>
+    <div class="controls">
+      <button id="btnPlay" disabled>Pause</button>
+      <button id="btnVolDown" disabled>Volume −</button>
+      <div class="vol" id="volLabel">Volume 70 %</div>
+      <button id="btnVolUp" disabled>Volume +</button>
+      <button id="btnMute" disabled>Couper le son</button>
+      <button id="btnFull" disabled>Plein écran</button>
+    </div>
+  </main>
 
-  <!-- Les Chaînes -->
-  <div class="grid">
-    <button class="btn" onclick="playEmbed('https://www.tf1.fr/tf1/direct')">1 - TF1</button>
-    <button class="btn" onclick="playStream('https://pass-f24.akamaized.net/hls/live/2012700/f24/hls_video/FR/master.m3u8')">France 24</button>
-    <button class="btn" onclick="playStream('https://iptv-org.github.io/iptv/countries/fr.m3u')">14 - France 4</button>
-    <button class="btn" onclick="playStream('https://ncdn-live-bfm.pfd.sfr.net/shls/LIVE$BFM_TV/index.m3u8')">BFM TV</button>
-  </div>
+  <aside class="side">
+    <h1 class="side-title">Mes chaînes</h1>
+    <div class="grid" id="grid"></div>
+    <div class="hint">Flèches : se déplacer · OK : choisir</div>
+  </aside>
+</div>
 
-  <script>
-    const screen = document.getElementById('screen');
-    let hls = null;
+<script>
+/* =====================================================================
+   LISTE DES CHAÎNES  —  c'est ici que vous modifiez les flux
+   ---------------------------------------------------------------------
+   type: "hls"   -> flux .m3u8 lu directement (contrôles complets)
+   type: "embed" -> lecteur officiel intégré (iframe)
+   type: "site"  -> le site officiel de la chaîne s'ouvre (pas de flux
+                    public utilisable sans jeton de sécurité)
+   site (facultatif) : proposé si le flux hls ne répond pas.
 
-    // Fonction pour les chaînes gratuites en direct (m3u8)
-    function playStream(url) {
-      if (hls) hls.destroy();
-      screen.innerHTML = '<video id="player" controls autoplay></video>';
-      const video = document.getElementById('player');
+   Pour passer une chaîne en lecture directe, remplacez par exemple :
+     { type: "site", site: "https://…" }
+   par
+     { type: "hls", url: "https://…/index.m3u8", site: "https://…" }
+   ===================================================================== */
+var CHANNELS = [
+  { name: "TF1", type: "site", site: "https://www.tf1.fr/tf1/direct",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bc/Logo_TF1_2013.svg/500px-Logo_TF1_2013.svg.png" },
 
-      if (Hls.isSupported()) {
-        hls = new Hls();
-        hls.loadSource(url);
-        hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
-      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = url;
-        video.play();
-      }
-    }
+  { name: "France 2", type: "site", site: "https://www.france.tv/france-2/direct.html",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/France_2_2018.svg/500px-France_2_2018.svg.png" },
 
-    // Fonction pour TF1 (Iframe pour éviter les blocages de sécurité)
-    function playEmbed(url) {
-      if (hls) hls.destroy();
-      screen.innerHTML = `<iframe src="${url}" allow="autoplay; fullscreen"></iframe>`;
-    }
+  { name: "France 3", type: "site", site: "https://www.france.tv/france-3/direct.html",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/France_3_2018.svg/960px-France_3_2018.svg.png" },
 
-    // Lance France 4 au démarrage
-    playStream('https://iptv-org.github.io/iptv/countries/fr.m3u');
-  </script>
+  { name: "France 4", type: "site", site: "https://www.france.tv/france-4/direct.html",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/France_4_2018.svg/960px-France_4_2018.svg.png" },
 
+  { name: "Arte", type: "hls",
+    url: "https://artesimulcast.akamaized.net/hls/live/2031003/artelive_fr/index.m3u8",
+    site: "https://www.arte.tv/fr/direct/",
+    logo: "https://api-cdn.arte.tv/img/v2/image/j4EoSJjX26uySVWdmt3EmS/1920x1080" },
+
+  { name: "Gulli", type: "site", site: "https://www.m6.fr/gulli",
+    logo: "https://upload.wikimedia.org/wikipedia/fr/4/43/18._Gulli.png" },
+
+  { name: "BFM TV", type: "hls",
+    url: "https://ncdn-live-bfm.pfd.sfr.net/shls/LIVE$BFM_TV/index.m3u8?end=END&start=LIVE",
+    site: "https://www.bfmtv.com/en-direct/",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/b/b6/Logo_BFM_TV_%282019%29.png" },
+
+  { name: "CNews", type: "embed",
+    url: "https://www.dailymotion.com/embed/video/x3b68jn?autoplay=1&queue-enable=false",
+    site: "https://www.cnews.fr/le-direct",
+    logo: "https://i.imgur.com/UMRGAHx.png" }
+];
+
+/* ============================ Code ============================ */
+var $ = function (id) { return document.getElementById(id); };
+var stage = $('stage'), video = $('video'), frame = $('frame');
+var overlay = $('overlay'), ovTitle = $('ovTitle'), ovText = $('ovText'), ovBtn = $('ovBtn');
+var banner = $('banner'), bnTitle = $('bnTitle'), bnSub = $('bnSub');
+var btnPlay = $('btnPlay'), btnVolDown = $('btnVolDown'), btnVolUp = $('btnVolUp');
+var btnMute = $('btnMute'), btnFull = $('btnFull'), volLabel = $('volLabel');
+
+var hls = null, current = -1, session = 0, loadTimer = null, bannerTimer = null;
+var vol = 0.7, muted = false, pseudoFs = false, ovAction = null;
+
+function store(k, v) { try { localStorage.setItem('tvmaison.' + k, v); } catch (e) {} }
+function load(k) { try { return localStorage.getItem('tvmaison.' + k); } catch (e) { return null; } }
+
+/* ---------- Grille de chaînes ---------- */
+var tiles = [];
+(function buildGrid() {
+  var grid = $('grid');
+  CHANNELS.forEach(function (ch, i) {
+    var cell = document.createElement('div'); cell.className = 'cell';
+    var b = document.createElement('button'); b.className = 'tile'; b.type = 'button';
+    b.setAttribute('aria-label', ch.name);
+
+    var logo = document.createElement('span'); logo.className = 'logo';
+    var img = document.createElement('img'); img.alt = ''; img.setAttribute('referrerpolicy', 'no-referrer');
+    img.onerror = function () { b.className += ' nologo'; };
+    img.src = ch.logo;
+    var fb = document.createElement('span'); fb.className = 'fallback'; fb.textContent = ch.name;
+    logo.appendChild(img); logo.appendChild(fb);
+
+    var name = document.createElement('span'); name.className = 'name'; name.textContent = ch.name;
+    b.appendChild(logo); b.appendChild(name);
+    b.onclick = function () { play(i); };
+    cell.appendChild(b); grid.appendChild(cell); tiles.push(b);
+  });
+})();
+
+/* ---------- Messages dans le lecteur ---------- */
+function showOverlay(title, text, actionLabel, actionFn) {
+  ovTitle.textContent = title; ovText.textContent = text || '';
+  ovAction = actionFn || null;
+  if (actionLabel) { ovBtn.textContent = actionLabel; ovBtn.style.display = 'inline-block'; }
+  else { ovBtn.style.display = 'none'; }
+  overlay.className = 'overlay';
+}
+function hideOverlay() { overlay.className = 'overlay hidden'; }
+ovBtn.onclick = function () { if (ovAction) ovAction(); };
+
+function showBanner(title, sub, ms) {
+  bnTitle.textContent = title; bnSub.textContent = sub || '';
+  bnSub.style.display = sub ? 'block' : 'none';
+  banner.className = 'banner show';
+  clearTimeout(bannerTimer);
+  bannerTimer = setTimeout(function () { banner.className = 'banner'; }, ms || 3500);
+}
+
+/* ---------- Lecture ---------- */
+function teardown() {
+  session++;
+  clearTimeout(loadTimer);
+  if (hls) { hls.destroy(); hls = null; }
+  try { video.pause(); } catch (e) {}
+  video.removeAttribute('src');
+  try { video.load(); } catch (e) {}
+  video.style.display = 'none';
+  frame.style.display = 'none';
+  frame.src = 'about:blank';
+}
+
+function play(i) {
+  current = i;
+  var ch = CHANNELS[i];
+  tiles.forEach(function (t, k) { t.className = t.className.replace(' on', ''); if (k === i) t.className += ' on'; });
+  store('last', i);
+  teardown();
+  updateControls(ch.type);
+  if (ch.type === 'hls') startHls(ch);
+  else if (ch.type === 'embed') startEmbed(ch);
+  else startSite(ch);
+}
+
+function openSite(ch) { window.location.href = ch.site; }
+
+function startSite(ch) {
+  showBanner(ch.name, 'Site officiel');
+  showOverlay(ch.name,
+    'Cette chaîne se regarde sur son site officiel. Appuyez sur OK pour l’ouvrir. Pour revenir ici, utilisez la touche Retour de la télécommande.',
+    'Ouvrir ' + ch.name, function () { openSite(ch); });
+  ovBtn.focus();
+}
+
+function startEmbed(ch) {
+  hideOverlay();
+  frame.style.display = 'block';
+  frame.src = ch.url;
+  showBanner(ch.name, 'Pour régler le son, utilisez la télécommande de la télévision.');
+}
+
+function fail(ch) {
+  var my = session;
+  clearTimeout(loadTimer);
+  if (hls) { hls.destroy(); hls = null; }
+  video.style.display = 'none';
+  showOverlay('Cette chaîne ne répond pas',
+    'Le flux est peut-être coupé pour le moment. Choisissez une autre chaîne, ou appuyez de nouveau sur OK sur cette chaîne pour réessayer.',
+    ch.site ? 'Ouvrir le site officiel' : null,
+    ch.site ? function () { openSite(ch); } : null);
+  if (ch.site && my === session) ovBtn.focus();
+}
+
+function startHls(ch) {
+  var my = session;
+  showOverlay('Chargement…', ch.name);
+  showBanner(ch.name);
+  video.style.display = 'block';
+  video.volume = vol; video.muted = muted;
+  loadTimer = setTimeout(function () { if (my === session) fail(ch); }, 20000);
+
+  var retries = 0;
+  if (window.Hls && Hls.isSupported()) {
+    hls = new Hls({ maxBufferLength: 20, enableWorker: true });
+    var h = hls;
+    h.loadSource(ch.url);
+    h.attachMedia(video);
+    h.on(Hls.Events.MANIFEST_PARSED, function () { if (my === session) tryPlay(); });
+    h.on(Hls.Events.ERROR, function (ev, data) {
+      if (my !== session || !data.fatal) return;
+      if (data.type === Hls.ErrorTypes.NETWORK_ERROR && retries < 2) { retries++; h.startLoad(); }
+      else if (data.type === Hls.ErrorTypes.MEDIA_ERROR && retries < 2) { retries++; h.recoverMediaError(); }
+      else fail(ch);
+    });
+  } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    video.src = ch.url;
+    tryPlay();
+  } else {
+    fail(ch);
+  }
+}
+
+function tryPlay() {
+  var p = video.play();
+  if (p && p.catch) {
+    p.catch(function () {
+      showOverlay('Lecture en attente', 'Appuyez sur OK pour lancer la chaîne.', 'Lancer la lecture',
+        function () { video.play(); });
+      ovBtn.focus();
+    });
+  }
+}
+
+video.addEventListener('playing', function () { clearTimeout(loadTimer); hideOverlay(); refreshPlayLabel(); });
+video.addEventListener('pause', refreshPlayLabel);
+video.addEventListener('play', refreshPlayLabel);
+video.addEventListener('error', function () {
+  if (video.getAttribute('src') && current >= 0) fail(CHANNELS[current]);
+});
+
+/* ---------- Contrôles ---------- */
+function updateControls(type) {
+  var isHls = type === 'hls';
+  btnPlay.disabled = btnVolDown.disabled = btnVolUp.disabled = btnMute.disabled = !isHls;
+  btnFull.disabled = !(type === 'hls' || type === 'embed');
+  refreshPlayLabel(); refreshVol();
+}
+function refreshPlayLabel() { btnPlay.textContent = video.paused ? 'Lecture' : 'Pause'; }
+function refreshVol() {
+  volLabel.textContent = muted ? 'Son coupé' : 'Volume ' + Math.round(vol * 100) + ' %';
+  btnMute.textContent = muted ? 'Remettre le son' : 'Couper le son';
+}
+function setVol(delta) {
+  vol = Math.min(1, Math.max(0, Math.round((vol + delta) * 10) / 10));
+  muted = false; video.volume = vol; video.muted = false;
+  store('vol', vol); refreshVol();
+  if (inFs()) showBanner(volLabel.textContent, '', 1500);
+}
+function togglePlay() {
+  if (btnPlay.disabled) return;
+  if (video.paused) video.play(); else video.pause();
+}
+btnPlay.onclick = togglePlay;
+btnVolDown.onclick = function () { setVol(-0.1); };
+btnVolUp.onclick = function () { setVol(0.1); };
+btnMute.onclick = function () { muted = !muted; video.muted = muted; refreshVol(); };
+
+/* ---------- Plein écran ---------- */
+function inFs() { return document.body.className.indexOf('fs') > -1; }
+function syncFs() {
+  var real = document.fullscreenElement || document.webkitFullscreenElement;
+  var on = !!(real || pseudoFs);
+  var was = inFs();
+  document.body.className = on ? 'fs' : '';
+  if (on && !was) showBanner('Plein écran', 'Flèches haut/bas : changer de chaîne · Retour : quitter', 6000);
+}
+function enterFs() {
+  var req = stage.requestFullscreen || stage.webkitRequestFullscreen;
+  if (req) {
+    try {
+      var p = req.call(stage);
+      if (p && p.catch) p.catch(function () { pseudoFs = true; syncFs(); });
+    } catch (e) { pseudoFs = true; syncFs(); }
+  } else { pseudoFs = true; }
+  syncFs();
+}
+function exitFs() {
+  pseudoFs = false;
+  if (document.fullscreenElement || document.webkitFullscreenElement) {
+    (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+  }
+  syncFs();
+  if (tiles[current]) tiles[current].focus();
+}
+btnFull.onclick = function () { if (inFs()) exitFs(); else enterFs(); };
+document.addEventListener('fullscreenchange', syncFs);
+document.addEventListener('webkitfullscreenchange', syncFs);
+
+/* ---------- Changer de chaîne (touches CH+/CH−, haut/bas en plein écran) ---------- */
+function zap(delta) {
+  var n = CHANNELS.length;
+  var i = current < 0 ? 0 : (current + delta + n) % n;
+  play(i);
+  if (!inFs() && tiles[i]) tiles[i].focus();
+}
+
+/* ---------- Navigation aux flèches (télécommande) ---------- */
+function focusables() {
+  var all = document.querySelectorAll('button');
+  var out = [];
+  for (var i = 0; i < all.length; i++) {
+    var el = all[i];
+    if (!el.disabled && el.offsetParent !== null) out.push(el);
+  }
+  return out;
+}
+function move(dir) {
+  var cur = document.activeElement, list = focusables();
+  if (!cur || list.indexOf(cur) < 0) {
+    var start = tiles[current >= 0 ? current : 0]; if (start) start.focus(); return;
+  }
+  var r = cur.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  var best = null, bestScore = 1e9;
+  list.forEach(function (el) {
+    if (el === cur) return;
+    var b = el.getBoundingClientRect();
+    var dx = b.left + b.width / 2 - cx, dy = b.top + b.height / 2 - cy, prim, sec;
+    if (dir === 'left')  { if (dx > -2) return; prim = -dx; sec = Math.abs(dy); }
+    if (dir === 'right') { if (dx <  2) return; prim =  dx; sec = Math.abs(dy); }
+    if (dir === 'up')    { if (dy > -2) return; prim = -dy; sec = Math.abs(dx); }
+    if (dir === 'down')  { if (dy <  2) return; prim =  dy; sec = Math.abs(dx); }
+    var score = prim + sec * 2.5;
+    if (score < bestScore) { bestScore = score; best = el; }
+  });
+  if (best) best.focus();
+}
+
+document.addEventListener('keydown', function (e) {
+  var k = e.keyCode;
+
+  if (inFs()) {
+    if (k === 27 || k === 8 || k === 10009 || k === 461) { e.preventDefault(); exitFs(); return; }
+    if (k === 38) { e.preventDefault(); zap(-1); return; }
+    if (k === 40) { e.preventDefault(); zap(1); return; }
+    if (k === 37) { e.preventDefault(); setVol(-0.1); return; }
+    if (k === 39) { e.preventDefault(); setVol(0.1); return; }
+    if (k === 13) { e.preventDefault(); togglePlay(); return; }
+  }
+
+  if (k === 37) { e.preventDefault(); move('left'); }
+  else if (k === 38) { e.preventDefault(); move('up'); }
+  else if (k === 39) { e.preventDefault(); move('right'); }
+  else if (k === 40) { e.preventDefault(); move('down'); }
+  else if (k === 427 || k === 34) { zap(1); }
+  else if (k === 428 || k === 33) { zap(-1); }
+  else if (k === 179 || k === 415 || k === 19) { togglePlay(); }
+});
+
+/* ---------- Démarrage ---------- */
+(function init() {
+  var v = parseFloat(load('vol')); if (!isNaN(v)) vol = Math.min(1, Math.max(0, v));
+  refreshVol();
+  showOverlay('Bonjour',
+    'Choisissez une chaîne dans la liste avec les flèches de la télécommande, puis appuyez sur OK.');
+  var last = parseInt(load('last'), 10);
+  if (isNaN(last) || last < 0 || last >= CHANNELS.length) last = 0;
+  current = -1;
+  tiles[last].focus();
+})();
+</script>
 </body>
 </html>
