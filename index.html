@@ -440,45 +440,111 @@
     var metaRef = db.ref('meta/defaultsVersion');
 
     /* Chaînes proposées par défaut.
+       - Chaque chaîne a une liste de sources : si la première ne répond pas (ou ne démarre pas en 15 s),
+         la suivante est essayée automatiquement. Les intégrations (embed) sont placées en dernier
+         recours, car on ne peut pas savoir si elles ont réussi.
        - "site" sert à récupérer automatiquement un logo si "logo" est vide ou ne s'affiche pas.
        - Augmentez DEFAULTS_VERSION quand vous modifiez cette liste : elle sera alors resynchronisée
          une fois dans Firebase (vos chaînes ajoutées à la main sont conservées). */
-    var DEFAULTS_VERSION = 3;
-    var F24 = 'https://live.france24.com/hls/live/';
+    var DEFAULTS_VERSION = 4;
+
     var EURONEWS = 'https://cdn-euronews.akamaized.net/live/eds/';
+    var PARATV = 'https://raw.githubusercontent.com/Paradise-91/ParaTV/main/streams/';
+    var BFM_SFR = 'https://ncdn-live-bfm.pfd.sfr.net/shls/';
+
+    function makeChannel(name, site, sources, logo) {
+      return {
+        name: name,
+        site: site,
+        logo: logo || '',
+        type: sources[0][0],
+        url: sources[0][1],
+        alt: sources.slice(1).map(function(src) { return { type: src[0], url: src[1] }; })
+      };
+    }
 
     var DEFAULT_CHANNELS = [
-      { name: "Franceinfo", type: "hls", site: "franceinfo.fr",
-        url: "https://vs-cme-2.s3.eu-west-3.amazonaws.com/live/franceinfo/index.m3u8",
-        logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Franceinfo.svg/330px-Franceinfo.svg.png" },
-      { name: "France 24", type: "hls", site: "france24.com", url: F24 + "2037179/F24_FR_HI_HLS/master_2300.m3u8" },
-      { name: "BFM TV", type: "hls", site: "bfmtv.com", url: "https://live-cdn-stream-euw1.bfmtv.bct.nextradiotv.com/master.m3u8" },
-      { name: "CNews", type: "hls", site: "cnews.fr", url: "https://raw.githubusercontent.com/Paradise-91/ParaTV/main/streams/canalplus/cnews-dm.m3u8" },
-      { name: "BFM Business", type: "hls", site: "bfmtv.com", url: "https://live-cdn-stream-euw1.bfmb.bct.nextradiotv.com/master.m3u8" },
-      { name: "Euronews", type: "hls", site: "euronews.com", url: EURONEWS + "euronews-fr/25026/index.m3u8" },
-      { name: "Arte", type: "hls", site: "arte.tv", url: "https://artesimulcast.akamaized.net/hls/live/2031003/artelive_fr/index.m3u8" },
-      { name: "TV5Monde Info", type: "hls", site: "tv5monde.com", url: "https://ott.tv5monde.com/Content/HLS/Live/channel(info)/variant.m3u8" },
-      { name: "20 Minutes TV", type: "hls", site: "20minutes.fr", url: "https://live-20minutestv.digiteka.com/1961167769/index.m3u8" },
-      { name: "Le Figaro", type: "hls", site: "lefigaro.fr", url: "https://figarotv-live.freecaster.com/live/freecaster/figarotv.m3u8" },
-      { name: "KTO", type: "hls", site: "ktotv.com", url: "https://live-kto.akamaized.net/hls/live/2033284/KTO/master.m3u8" },
-      { name: "Equidia", type: "hls", site: "equidia.fr", url: "https://raw.githubusercontent.com/Paradise-91/ParaTV/main/streams/equidia/live2.m3u8" },
-      { name: "Africanews", type: "hls", site: "africanews.com", url: EURONEWS + "africanews-fr/25050/index.m3u8" },
+      makeChannel("Franceinfo", "franceinfo.fr", [
+        ["hls", "https://vs-cme-2.s3.eu-west-3.amazonaws.com/live/franceinfo/index.m3u8"],
+        ["hls", PARATV + "francetv/franceinfo.m3u8"],
+        ["embed", "https://www.youtube.com/embed/live_stream?channel=UCO6K_kkdP-lnSCiO3tPx7WA&autoplay=1"]
+      ], "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Franceinfo.svg/330px-Franceinfo.svg.png"),
 
-      { name: "TéléGohelle", type: "hls", site: "telegohelle.fr", url: "https://videas.agglo-lenslievin.fr/index.m3u8" },
-      { name: "TVR Bretagne", type: "hls", site: "tvr.bzh", url: "https://streamtv.cdn.dvmr.fr/TVR/ngrp:tvr.stream_all/master.m3u8" },
-      { name: "TV78", type: "hls", site: "tv78.com", url: "https://streamtv.cdn.dvmr.fr/TV78/ngrp:tv78.stream_all/master.m3u8" },
+      makeChannel("France 24", "france24.com", [
+        ["hls", "https://live.france24.com/hls/live/2037179/F24_FR_HI_HLS/master_2300.m3u8"],
+        ["hls", "https://live.france24.com/hls/live/2037179-b/F24_FR_HI_HLS/master_2300.m3u8"],
+        ["hls", "https://static.france24.com/live/F24_FR_PAD_HLS/live_tv.m3u8"]
+      ]),
 
-      { name: "France 24 English", type: "hls", site: "france24.com", url: F24 + "2037218/F24_EN_HI_HLS/master_2300.m3u8" },
-      { name: "France 24 Español", type: "hls", site: "france24.com", url: F24 + "2037220/F24_ES_HI_HLS/master_2300.m3u8" },
-      { name: "France 24 عربي", type: "hls", site: "france24.com", url: F24 + "2037222/F24_AR_HI_HLS/master_2300.m3u8" },
-      { name: "Euronews English", type: "hls", site: "euronews.com", url: EURONEWS + "euronews-en/25002/index.m3u8" },
-      { name: "Euronews Español", type: "hls", site: "euronews.com", url: EURONEWS + "euronews-es/25053/index.m3u8" },
-      { name: "Euronews Deutsch", type: "hls", site: "euronews.com", url: EURONEWS + "euronews-de/25027/index.m3u8" },
-      { name: "Africanews English", type: "hls", site: "africanews.com", url: EURONEWS + "africanews-en/25049/index.m3u8" },
-      { name: "Al Jazeera English", type: "hls", site: "aljazeera.com", url: "https://live-hls-apps-aje-fa.getaj.net/AJE/index.m3u8" },
-      { name: "DW English", type: "hls", site: "dw.com", url: "https://dwamdstream102.akamaized.net/hls/live/2015525/dwstream102/master.m3u8" },
-      { name: "Bloomberg Europe", type: "hls", site: "bloomberg.com", url: "https://bloomberg.com/media-manifest/streams/eu.m3u8" },
-      { name: "NASA TV", type: "hls", site: "nasa.gov", url: "https://ntv1.akamaized.net/hls/live/2014075/NASA-NTV1-HLS/master.m3u8" }
+      makeChannel("BFM TV", "bfmtv.com", [
+        ["hls", BFM_SFR + "LIVE$BFM_TV/index.m3u8?start=LIVE&end=END"],
+        ["hls", "https://live-cdn-stream-euw1.bfmtv.bct.nextradiotv.com/master.m3u8"]
+      ]),
+
+      makeChannel("CNews", "cnews.fr", [
+        ["embed", "https://www.dailymotion.com/embed/video/x3b68jn?autoplay=1"]
+      ]),
+
+      makeChannel("BFM Business", "bfmtv.com", [
+        ["hls", BFM_SFR + "LIVE$BFM_BUSINESS/index.m3u8?start=LIVE&end=END"],
+        ["hls", "https://live-cdn-stream-euw1.bfmb.bct.nextradiotv.com/master.m3u8"]
+      ]),
+
+      makeChannel("Euronews", "euronews.com", [
+        ["hls", EURONEWS + "euronews-fr/25026/index.m3u8"],
+        ["hls", "https://2f6c5bf4.wurl.com/master/f36d25e7e52f1ba8d7e56eb859c636563214f541/UmxheHhUVi1ldV9FdXJvbmV3c0ZyYW5jYWlzX0hMUw/playlist.m3u8"],
+        ["hls", "https://euronews-euronews-french-3-fr.samsung.wurl.tv/playlist.m3u8"]
+      ]),
+
+      makeChannel("Arte", "arte.tv", [
+        ["hls", "https://artesimulcast.akamaized.net/hls/live/2031003/artelive_fr/index.m3u8"],
+        ["hls", "https://artesimulcast.akamaized.net/hls/live/2031003/artelive_fr/master_v720.m3u8"],
+        ["hls", "https://artesimulcast.akamaized.net/hls/live/2031003-b/artelive_fr/master_v720.m3u8"]
+      ]),
+
+      makeChannel("TV5Monde Info", "tv5monde.com", [
+        ["hls", "https://ott.tv5monde.com/Content/HLS/Live/channel(info)/variant.m3u8"]
+      ]),
+
+      makeChannel("20 Minutes TV", "20minutes.fr", [
+        ["hls", "https://live-20minutestv.digiteka.com/1961167769/index.m3u8"]
+      ]),
+
+      makeChannel("Le Figaro", "lefigaro.fr", [
+        ["hls", "https://figarotv-live.freecaster.com/live/freecaster/figarotv.m3u8"],
+        ["hls", "https://static.lefigaro.fr/secom/tnt.m3u8"]
+      ]),
+
+      makeChannel("KTO", "ktotv.com", [
+        ["hls", "https://live-kto.akamaized.net/hls/live/2033284/KTO/master.m3u8"]
+      ]),
+
+      makeChannel("Equidia", "equidia.fr", [
+        ["hls", PARATV + "equidia/live2.m3u8"]
+      ]),
+
+      makeChannel("Africanews", "africanews.com", [
+        ["hls", EURONEWS + "africanews-fr/25050/index.m3u8"]
+      ]),
+
+      makeChannel("TéléGohelle", "telegohelle.fr", [
+        ["hls", "https://videas.agglo-lenslievin.fr/index.m3u8"]
+      ]),
+
+      makeChannel("TVR Bretagne", "tvr.bzh", [
+        ["hls", "https://streamtv.cdn.dvmr.fr/TVR/ngrp:tvr.stream_all/master.m3u8"]
+      ]),
+
+      makeChannel("TV78", "tv78.com", [
+        ["hls", "https://streamtv.cdn.dvmr.fr/TV78/ngrp:tv78.stream_all/master.m3u8"]
+      ])
+    ];
+
+    // Chaînes retirées de la liste par défaut : elles sont supprimées de Firebase à la resynchronisation
+    var REMOVED_CHANNELS = [
+      "France 24 English", "France 24 Español", "France 24 عربي",
+      "Euronews English", "Euronews Español", "Euronews Deutsch",
+      "Africanews English", "Al Jazeera English", "DW English", "Bloomberg Europe", "NASA TV"
     ];
 
     var channelsList = [];
@@ -568,14 +634,23 @@
       img.alt = '';
       img.decoding = 'async';
       img.referrerPolicy = 'no-referrer';
-      img.onerror = function() {
+
+      function next() {
         step++;
         if (step < sources.length) {
           img.src = sources[step];
         } else {
           img.onerror = null;
+          img.onload = null;
           img.src = initialsLogo(channel.name);
         }
+      }
+      img.onerror = next;
+      // Les services de favicons renvoient une petite icône « globe » quand le site n'a pas de logo :
+      // on la rejette pour passer à la pastille avec les initiales.
+      img.onload = function() {
+        var isFavicon = /favicons|duckduckgo/.test(img.src);
+        if (isFavicon && img.naturalWidth && img.naturalWidth < 48) next();
       };
       img.src = sources.length ? sources[0] : initialsLogo(channel.name);
       return img;
@@ -590,12 +665,14 @@
     }
 
     // Les chaînes par défaut passent en premier (dans l'ordre du code), puis vos chaînes ajoutées.
+    // Les chaînes retirées (REMOVED_CHANNELS) disparaissent.
     function mergeDefaults(list) {
       var used = {};
       var out = DEFAULT_CHANNELS.map(function(d) {
         used[keyOf(d.name)] = true;
-        return { name: d.name, type: d.type, url: d.url, logo: d.logo || '', site: d.site || '' };
+        return JSON.parse(JSON.stringify(d));
       });
+      REMOVED_CHANNELS.forEach(function(n) { used[keyOf(n)] = true; });
       list.forEach(function(c) {
         if (!used[keyOf(c.name)]) out.push(c);
       });
@@ -706,7 +783,24 @@
 
     /* ---------- Lecture ---------- */
 
+    var playToken = 0;          // identifie la lecture en cours : les anciennes réponses sont ignorées
+    var attemptIndex = 0;       // source en cours d'essai pour la chaîne active
+    var currentSources = [];
+    var loadTimer = null;
+    var autoMuted = false;      // vrai si le navigateur nous a forcés à couper le son
+
+    function sourcesOf(channel) {
+      var list = [{ type: channel.type, url: channel.url }];
+      var alt = channel.alt;
+      if (alt) {
+        var arr = Array.isArray(alt) ? alt : Object.keys(alt).map(function(k) { return alt[k]; });
+        arr.forEach(function(a) { if (a && a.url) list.push({ type: a.type || 'hls', url: a.url }); });
+      }
+      return list;
+    }
+
     function stopPlayback() {
+      clearTimeout(loadTimer);
       if (hlsPlayerInstance) {
         hlsPlayerInstance.destroy();
         hlsPlayerInstance = null;
@@ -715,26 +809,130 @@
       videoEl.removeAttribute('src');
       videoEl.load();
       iframeEl.onload = null;
-      iframeEl.src = 'about:blank';
+      if (iframeEl.getAttribute('src') && iframeEl.getAttribute('src') !== 'about:blank') iframeEl.src = 'about:blank';
       videoEl.style.display = 'none';
       iframeEl.style.display = 'none';
     }
 
     function failPlayback(message) {
+      clearTimeout(loadTimer);
       channelState = 'error';
       setStatus(message, true);
     }
 
-    function tryPlay() {
+    function unmuteIfNeeded() {
+      if (!autoMuted) return;
+      autoMuted = false;
+      videoEl.muted = false;
+      getEl('toast').style.display = 'none';
+    }
+    // Le premier appui / clic après une coupure automatique remet le son
+    document.addEventListener('keydown', unmuteIfNeeded, true);
+    document.addEventListener('click', unmuteIfNeeded, true);
+
+    function tryPlay(token) {
       var p = videoEl.play();
       if (p && p.catch) {
-        p.catch(function() {
-          // Certains navigateurs refusent le son automatique : on relance sans le son
-          videoEl.muted = true;
-          var p2 = videoEl.play();
-          if (p2 && p2.catch) p2.catch(function() {});
-          showToast('Lecture sans le son : le navigateur bloque le son automatique. Cliquez sur la chaîne pour le réactiver.');
+        p.catch(function(err) {
+          if (token !== playToken) return;                 // réponse d'une ancienne chaîne : on l'ignore
+          if (err && err.name === 'NotAllowedError') {     // seul vrai cas de blocage du son par le navigateur
+            videoEl.muted = true;
+            autoMuted = true;
+            var p2 = videoEl.play();
+            if (p2 && p2.catch) p2.catch(function() {});
+            showToast('Le navigateur bloque le son automatique : appuyez sur OK (ou cliquez) pour l\'activer.');
+          }
+          // AbortError : un chargement plus récent a pris le relais, rien à faire
         });
+      }
+    }
+
+    // Passe à la source suivante de la chaîne, ou abandonne s'il n'y en a plus
+    function nextSource(token) {
+      if (token !== playToken) return;
+      attemptIndex++;
+      if (attemptIndex < currentSources.length) {
+        startAttempt(token);
+      } else {
+        stopPlayback();
+        failPlayback('Cette chaîne ne répond pas pour le moment (flux coupé, bloqué ou hors de votre région).');
+      }
+    }
+
+    function startAttempt(token) {
+      if (token !== playToken) return;
+      var channel = channelsList[activeIndex];
+      var src = currentSources[attemptIndex];
+      if (!channel || !src) return;
+
+      stopPlayback();
+      videoEl.muted = false;
+      autoMuted = false;
+      channelState = 'loading';
+      playerWrapperEl.classList.toggle('embed', src.type === 'embed');
+      pauseBtn.disabled = (src.type === 'embed');
+      pauseBtn.textContent = 'Pause';
+
+      if (location.protocol === 'https:' && /^http:\/\//i.test(src.url)) {
+        nextSource(token);          // un flux http est bloqué depuis une page https
+        return;
+      }
+
+      var label = currentSources.length > 1 ? ' (source ' + (attemptIndex + 1) + '/' + currentSources.length + ')' : '';
+      setStatus('Chargement de ' + channel.name + label + '…', false);
+
+      if (src.type === 'embed') {
+        iframeEl.style.display = 'block';
+        iframeEl.onload = function() { channelState = 'playing'; setStatus(''); };
+        iframeEl.src = src.url;
+        return;
+      }
+
+      videoEl.style.display = 'block';
+      // Si rien ne démarre au bout de 15 s, on tente la source suivante
+      loadTimer = setTimeout(function() {
+        if (token === playToken && channelState !== 'playing') nextSource(token);
+      }, 15000);
+
+      if (window.Hls && Hls.isSupported()) {
+        var started = false;
+        var networkRetries = 0;
+        var mediaRetries = 0;
+        var hls = new Hls({
+          enableWorker: true,
+          lowLatencyMode: false,
+          maxBufferLength: 30,
+          backBufferLength: 30,
+          manifestLoadingMaxRetry: 1,
+          manifestLoadingRetryDelay: 500,
+          levelLoadingMaxRetry: 2,
+          fragLoadingMaxRetry: 4
+        });
+        hlsPlayerInstance = hls;
+
+        hls.on(Hls.Events.MANIFEST_PARSED, function() { tryPlay(token); });
+        hls.on(Hls.Events.FRAG_LOADED, function() { started = true; networkRetries = 0; });
+        hls.on(Hls.Events.ERROR, function(event, data) {
+          if (token !== playToken || !data || !data.fatal) return;
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR && started && networkRetries < 3) {
+            networkRetries++;
+            setStatus('Connexion instable, nouvelle tentative (' + networkRetries + '/3)…', false);
+            hls.startLoad();
+          } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR && mediaRetries < 3) {
+            mediaRetries++;
+            hls.recoverMediaError();
+          } else {
+            nextSource(token);
+          }
+        });
+
+        hls.loadSource(src.url);
+        hls.attachMedia(videoEl);
+      } else if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {
+        videoEl.src = src.url;
+        tryPlay(token);
+      } else {
+        failPlayback('Ce navigateur ne sait pas lire les flux .m3u8.');
       }
     }
 
@@ -743,10 +941,10 @@
 
       activeIndex = index;
       var channel = channelsList[index];
-      channelState = 'loading';
+      playToken++;
+      currentSources = sourcesOf(channel);
+      attemptIndex = 0;
 
-      stopPlayback();
-      videoEl.muted = false;
       overlayEl.className = 'player-overlay hidden';
       setActiveTile(index, fromZap && !fsActive);
 
@@ -755,66 +953,9 @@
       strong.textContent = channel.name;
       nowPlayingEl.appendChild(strong);
       fsTitleEl.textContent = channel.name;
-      playerWrapperEl.classList.toggle('embed', channel.type === 'embed');
-      pauseBtn.disabled = (channel.type === 'embed');
-      pauseBtn.textContent = 'Pause';
       if (fsActive) showFsBar();
 
-      if (location.protocol === 'https:' && /^http:\/\//i.test(channel.url)) {
-        failPlayback('Ce flux est en http et ne peut pas être lu depuis une page https. Utilisez une adresse https.');
-        return;
-      }
-
-      setStatus('Chargement de ' + channel.name + '…', false);
-
-      if (channel.type === 'hls') {
-        videoEl.style.display = 'block';
-
-        if (window.Hls && Hls.isSupported()) {
-          var networkRetries = 0;
-          var mediaRetries = 0;
-          var hls = new Hls({
-            enableWorker: true,
-            lowLatencyMode: false,
-            maxBufferLength: 30,
-            backBufferLength: 30,
-            manifestLoadingMaxRetry: 4,
-            levelLoadingMaxRetry: 4,
-            fragLoadingMaxRetry: 6
-          });
-          hlsPlayerInstance = hls;
-
-          hls.on(Hls.Events.MANIFEST_PARSED, function() { tryPlay(); });
-          hls.on(Hls.Events.FRAG_LOADED, function() { networkRetries = 0; });
-          hls.on(Hls.Events.ERROR, function(event, data) {
-            if (!data || !data.fatal) return;
-            if (data.type === Hls.ErrorTypes.NETWORK_ERROR && networkRetries < 3) {
-              networkRetries++;
-              setStatus('Connexion instable, nouvelle tentative (' + networkRetries + '/3)…', false);
-              hls.startLoad();
-            } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR && mediaRetries < 3) {
-              mediaRetries++;
-              hls.recoverMediaError();
-            } else {
-              failPlayback('Cette chaîne ne répond pas pour le moment (flux coupé, bloqué ou hors de votre région).');
-              hls.destroy();
-              if (hlsPlayerInstance === hls) hlsPlayerInstance = null;
-            }
-          });
-
-          hls.loadSource(channel.url);
-          hls.attachMedia(videoEl);
-        } else if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {
-          videoEl.src = channel.url;
-          tryPlay();
-        } else {
-          failPlayback('Ce navigateur ne sait pas lire les flux .m3u8.');
-        }
-      } else if (channel.type === 'embed') {
-        iframeEl.style.display = 'block';
-        iframeEl.onload = function() { channelState = 'playing'; setStatus(''); };
-        iframeEl.src = channel.url;
-      }
+      startAttempt(playToken);
     }
 
     function zap(delta) {
@@ -828,6 +969,7 @@
 
     // Suivi de l'état réel du lecteur vidéo
     videoEl.addEventListener('playing', function() {
+      clearTimeout(loadTimer);
       channelState = 'playing';
       setStatus('');
       pauseBtn.textContent = 'Pause';
@@ -841,12 +983,12 @@
     videoEl.addEventListener('play', function() { pauseBtn.textContent = 'Pause'; });
     videoEl.addEventListener('error', function() {
       // Uniquement pour la lecture native (hls.js gère lui-même ses erreurs et ses reprises)
-      if (!hlsPlayerInstance && videoEl.getAttribute('src')) failPlayback('Impossible de lire cette chaîne.');
+      if (!hlsPlayerInstance && videoEl.getAttribute('src')) nextSource(playToken);
     });
 
     function togglePause() {
       if (videoEl.style.display === 'none') return;
-      if (videoEl.paused) tryPlay(); else videoEl.pause();
+      if (videoEl.paused) tryPlay(playToken); else videoEl.pause();
     }
 
     pauseBtn.onclick = togglePause;
