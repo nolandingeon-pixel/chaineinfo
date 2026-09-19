@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TV Maison</title>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
+  
+  <!-- SDK Firebase Compatible -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
   <style>
     :root {
       --bg-color: #0d1117;
@@ -17,9 +22,7 @@
       --logo-background: #ffffff;
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     html, body {
       height: 100%;
@@ -39,7 +42,6 @@
       gap: 15px;
     }
 
-    /* Zone vidéo */
     .main-stage {
       flex: 7;
       display: flex;
@@ -79,22 +81,8 @@
       padding: 20px;
     }
 
-    .player-overlay.hidden {
-      display: none;
-    }
+    .player-overlay.hidden { display: none; }
 
-    .player-overlay h2 {
-      margin: 0 0 10px 0;
-      font-size: 2rem;
-    }
-
-    .player-overlay p {
-      color: var(--text-muted);
-      margin: 0;
-      font-size: 1.1rem;
-    }
-
-    /* Barre de contrôles */
     .control-bar {
       display: flex;
       align-items: center;
@@ -135,7 +123,6 @@
       font-weight: bold;
     }
 
-    /* Sidebar & Grille */
     .sidebar {
       flex: 3;
       display: flex;
@@ -154,11 +141,6 @@
       margin-bottom: 15px;
     }
 
-    .sidebar-title {
-      margin: 0;
-      font-size: 1.4rem;
-    }
-
     .channels-grid {
       flex: 1;
       display: grid;
@@ -166,11 +148,6 @@
       grid-auto-rows: 100px;
       gap: 10px;
       overflow-y: auto;
-    }
-
-    .channel-card {
-      width: 100%;
-      height: 100%;
     }
 
     .tile-btn {
@@ -214,15 +191,9 @@
       padding: 0 5px;
     }
 
-    .tile-btn.active {
-      border-color: var(--active-color);
-    }
+    .tile-btn.active { border-color: var(--active-color); }
+    .tile-btn.active .channel-name { color: var(--active-color); }
 
-    .tile-btn.active .channel-name {
-      color: var(--active-color);
-    }
-
-    /* Modale */
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -233,9 +204,7 @@
       justify-content: center;
     }
 
-    .modal-backdrop.hidden {
-      display: none;
-    }
+    .modal-backdrop.hidden { display: none; }
 
     .modal-box {
       background-color: var(--panel-bg);
@@ -248,20 +217,10 @@
       gap: 15px;
     }
 
-    .modal-box h3 {
-      margin: 0 0 5px 0;
-      font-size: 1.2rem;
-    }
-
     .form-group {
       display: flex;
       flex-direction: column;
       gap: 5px;
-    }
-
-    .form-group label {
-      font-size: 0.85rem;
-      color: var(--text-muted);
     }
 
     .form-group input, .form-group select {
@@ -279,36 +238,24 @@
       margin-top: 10px;
     }
 
-    .modal-actions .action-btn {
-      flex: 1;
-    }
-
-    .action-btn.save {
-      background-color: #1f6feb;
-      border-color: #388bfd;
-    }
-
-    .action-btn.cancel {
-      background-color: #21262d;
-    }
+    .modal-actions .action-btn { flex: 1; }
+    .action-btn.save { background-color: #1f6feb; border-color: #388bfd; }
+    .action-btn.cancel { background-color: #21262d; }
   </style>
 </head>
 <body>
 
   <div class="app-container">
-    <!-- Zone de lecture vidéo -->
     <main class="main-stage">
       <div class="player-wrapper">
         <video id="hls-player" playsinline></video>
         <iframe id="iframe-player" allow="autoplay; fullscreen" allowfullscreen></iframe>
-        
         <div class="player-overlay" id="player-overlay">
-          <h2 id="overlay-title">TV Maison</h2>
-          <p id="overlay-subtitle">Sélectionnez une chaîne dans la liste pour démarrer la lecture.</p>
+          <h2>TV Maison</h2>
+          <p>Sélectionnez une chaîne dans la liste pour démarrer.</p>
         </div>
       </div>
 
-      <!-- Barre de commandes -->
       <div class="control-bar">
         <button id="btn-play-pause" class="control-btn">Pause</button>
         <button id="btn-vol-down" class="control-btn">Volume −</button>
@@ -318,44 +265,37 @@
       </div>
     </main>
 
-    <!-- Panneau latéral des chaînes -->
     <aside class="sidebar">
       <div class="sidebar-header">
-        <h1 class="sidebar-title">Chaînes</h1>
+        <h1 style="margin:0; font-size:1.4rem;">Chaînes</h1>
         <button id="btn-open-modal" class="action-btn">+ Ajouter</button>
       </div>
       <div class="channels-grid" id="channels-grid"></div>
     </aside>
   </div>
 
-  <!-- Fenêtre modale d'ajout de chaîne -->
   <div class="modal-backdrop hidden" id="modal-backdrop">
     <div class="modal-box">
-      <h3>Ajouter une nouvelle chaîne</h3>
-      
+      <h3 style="margin:0;">Ajouter une chaîne</h3>
       <div class="form-group">
-        <label for="input-name">Nom de la chaîne :</label>
+        <label>Nom :</label>
         <input type="text" id="input-name" placeholder="Ex: Franceinfo">
       </div>
-
       <div class="form-group">
-        <label for="input-logo">Lien de l'image (Logo) :</label>
-        <input type="text" id="input-logo" placeholder="https://.../logo.png">
+        <label>Logo (URL) :</label>
+        <input type="text" id="input-logo" placeholder="https://...">
       </div>
-
       <div class="form-group">
-        <label for="input-url">Lien du flux ou de l'intégration :</label>
+        <label>Flux ou intégration (URL) :</label>
         <input type="text" id="input-url" placeholder="https://...">
       </div>
-
       <div class="form-group">
-        <label for="select-type">Type de source :</label>
+        <label>Type :</label>
         <select id="select-type">
           <option value="hls">Flux direct (.m3u8)</option>
-          <option value="embed">Intégration Web (Dailymotion / Iframe)</option>
+          <option value="embed">Intégration Web (Dailymotion)</option>
         </select>
       </div>
-
       <div class="modal-actions">
         <button id="btn-save-channel" class="action-btn save">Enregistrer</button>
         <button id="btn-close-modal" class="action-btn cancel">Annuler</button>
@@ -364,50 +304,28 @@
   </div>
 
   <script>
-    // Liste initiale de chaînes de base
+    // Configuration de ton projet Firebase
+    var firebaseConfig = {
+      apiKey: "AIzaSyD82Pt3Ha8tKSQl0243t4TZrW83tXB52KY",
+      authDomain: "chaineinfo-84ac3.firebaseapp.com",
+      databaseURL: "https://chaineinfo-84ac3-default-rtdb.firebaseio.com",
+      projectId: "chaineinfo-84ac3",
+      storageBucket: "chaineinfo-84ac3.firebasestorage.app",
+      messagingSenderId: "573964536961",
+      appId: "1:573964536961:web:5c4f1a967a4766c39e1180"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    var db = firebase.database();
+    var channelsRef = db.ref('channels');
+
+    // Chaînes par défaut si la BDD est encore vide
     var DEFAULT_CHANNELS = [
-      {
-        name: "Arte",
-        type: "hls",
-        url: "https://artesimulcast.akamaized.net/hls/live/2031003/artelive_fr/index.m3u8",
-        logo: "https://api-cdn.arte.tv/img/v2/image/j4EoSJjX26uySVWdmt3EmS/1920x1080"
-      },
-      {
-        name: "BFM TV",
-        type: "hls",
-        url: "https://ncdn-live-bfm.pfd.sfr.net/shls/LIVE$BFM_TV/index.m3u8",
-        logo: "https://upload.wikimedia.org/wikipedia/commons/b/b6/Logo_BFM_TV_%282019%29.png"
-      },
-      {
-        name: "France 24",
-        type: "hls",
-        url: "https://static.france24.com/live/F24_FR_PAD_HLS/live_tv.m3u8",
-        logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/France_24_logo.svg/500px-France_24_logo.svg.png"
-      },
-      {
-        name: "Franceinfo",
-        type: "embed",
-        url: "https://www.dailymotion.com/embed/video/x37m94k?autoplay=1",
-        logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/France_Info_-_2016.svg/500px-France_Info_-_2016.svg.png"
-      },
-      {
-        name: "CNews",
-        type: "embed",
-        url: "https://www.dailymotion.com/embed/video/x3b68jn?autoplay=1",
-        logo: "https://i.imgur.com/UMRGAHx.png"
-      },
-      {
-        name: "Euronews",
-        type: "hls",
-        url: "https://euronews-euronews-french-3-fr.samsung.wurl.tv/playlist.m3u8",
-        logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Euronews_logo_2016.svg/500px-Euronews_logo_2016.svg.png"
-      },
-      {
-        name: "BFM Business",
-        type: "hls",
-        url: "https://ncdn-live-bfmbusiness.pfd.sfr.net/shls/LIVE$BFM_BUSINESS/index.m3u8",
-        logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/BFM_Business_2019.svg/500px-BFM_Business_2019.svg.png"
-      }
+      { name: "Arte", type: "hls", url: "https://artesimulcast.akamaized.net/hls/live/2031003/artelive_fr/index.m3u8", logo: "https://api-cdn.arte.tv/img/v2/image/j4EoSJjX26uySVWdmt3EmS/1920x1080" },
+      { name: "BFM TV", type: "hls", url: "https://ncdn-live-bfm.pfd.sfr.net/shls/LIVE$BFM_TV/index.m3u8", logo: "https://upload.wikimedia.org/wikipedia/commons/b/b6/Logo_BFM_TV_%282019%29.png" },
+      { name: "France 24", type: "hls", url: "https://static.france24.com/live/F24_FR_PAD_HLS/live_tv.m3u8", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/France_24_logo.svg/500px-France_24_logo.svg.png" },
+      { name: "CNews", type: "embed", url: "https://www.dailymotion.com/embed/video/x3b68jn?autoplay=1", logo: "https://i.imgur.com/UMRGAHx.png" },
+      { name: "Euronews", type: "hls", url: "https://euronews-euronews-french-3-fr.samsung.wurl.tv/playlist.m3u8", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Euronews_logo_2016.svg/500px-Euronews_logo_2016.svg.png" }
     ];
 
     var channelsList = [];
@@ -415,47 +333,37 @@
     var hlsPlayerInstance = null;
     var currentVolume = 0.7;
 
-    function getEl(id) {
-      return document.getElementById(id);
-    }
-
+    function getEl(id) { return document.getElementById(id); }
     var videoEl = getEl('hls-player');
     var iframeEl = getEl('iframe-player');
     var overlayEl = getEl('player-overlay');
     var gridEl = getEl('channels-grid');
     var modalEl = getEl('modal-backdrop');
 
-    function loadSavedChannels() {
-      var stored = localStorage.getItem('tv_app_channels');
-      if (stored) {
-        try {
-          channelsList = JSON.parse(stored);
-        } catch (e) {
-          channelsList = DEFAULT_CHANNELS;
-        }
+    // Écoute en temps réel les changements sur la base de données
+    channelsRef.on('value', function(snapshot) {
+      var data = snapshot.val();
+      if (data) {
+        channelsList = Array.isArray(data) ? data : Object.values(data);
       } else {
         channelsList = DEFAULT_CHANNELS;
+        channelsRef.set(DEFAULT_CHANNELS);
       }
-    }
+      renderChannelsGrid();
+    });
 
     function renderChannelsGrid() {
       gridEl.innerHTML = '';
-      
       channelsList.forEach(function(channel, index) {
         var card = document.createElement('div');
-        card.className = 'channel-card';
-
         var btn = document.createElement('button');
         btn.className = 'tile-btn' + (index === activeIndex ? ' active' : '');
-        btn.onclick = function() {
-          playChannel(index);
-        };
+        btn.onclick = function() { playChannel(index); };
 
         var logoDiv = document.createElement('div');
         logoDiv.className = 'logo-wrapper';
         var img = document.createElement('img');
         img.src = channel.logo;
-        img.alt = channel.name;
         logoDiv.appendChild(img);
 
         var nameDiv = document.createElement('div');
@@ -489,9 +397,7 @@
           hlsPlayerInstance = new Hls();
           hlsPlayerInstance.loadSource(channel.url);
           hlsPlayerInstance.attachMedia(videoEl);
-          hlsPlayerInstance.on(Hls.Events.MANIFEST_PARSED, function() {
-            videoEl.play();
-          });
+          hlsPlayerInstance.on(Hls.Events.MANIFEST_PARSED, function() { videoEl.play(); });
         } else if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {
           videoEl.src = channel.url;
           videoEl.play();
@@ -512,45 +418,24 @@
 
     getEl('btn-play-pause').onclick = function() {
       if (videoEl.style.display !== 'none') {
-        if (videoEl.paused) {
-          videoEl.play();
-          this.textContent = 'Pause';
-        } else {
-          videoEl.pause();
-          this.textContent = 'Lecture';
-        }
+        if (videoEl.paused) { videoEl.play(); this.textContent = 'Pause'; }
+        else { videoEl.pause(); this.textContent = 'Lecture'; }
       }
     };
 
-    getEl('btn-vol-up').onclick = function() {
-      updateVolume(0.1);
-    };
-
-    getEl('btn-vol-down').onclick = function() {
-      updateVolume(-0.1);
-    };
+    getEl('btn-vol-up').onclick = function() { updateVolume(0.1); };
+    getEl('btn-vol-down').onclick = function() { updateVolume(-0.1); };
 
     getEl('btn-fullscreen').onclick = function() {
       var stage = document.querySelector('.main-stage');
-      if (!document.fullscreenElement) {
-        if (stage.requestFullscreen) {
-          stage.requestFullscreen();
-        }
-      } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        }
-      }
+      if (!document.fullscreenElement) { stage.requestFullscreen(); }
+      else { document.exitFullscreen(); }
     };
 
-    getEl('btn-open-modal').onclick = function() {
-      modalEl.className = 'modal-backdrop';
-    };
+    getEl('btn-open-modal').onclick = function() { modalEl.className = 'modal-backdrop'; };
+    getEl('btn-close-modal').onclick = function() { modalEl.className = 'modal-backdrop hidden'; };
 
-    getEl('btn-close-modal').onclick = function() {
-      modalEl.className = 'modal-backdrop hidden';
-    };
-
+    // Sauvegarde en ligne synchronisée sur la BDD Firebase
     getEl('btn-save-channel').onclick = function() {
       var name = getEl('input-name').value.trim();
       var logo = getEl('input-logo').value.trim();
@@ -565,8 +450,7 @@
           type: type
         });
 
-        localStorage.setItem('tv_app_channels', JSON.stringify(channelsList));
-        renderChannelsGrid();
+        channelsRef.set(channelsList);
 
         modalEl.className = 'modal-backdrop hidden';
         getEl('input-name').value = '';
@@ -574,10 +458,6 @@
         getEl('input-url').value = '';
       }
     };
-
-    // Démarrage
-    loadSavedChannels();
-    renderChannelsGrid();
   </script>
 </body>
 </html>
