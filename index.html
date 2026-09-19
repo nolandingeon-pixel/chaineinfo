@@ -156,30 +156,29 @@
 
 <script>
 /* =====================================================================
-   LISTE DES CHAÎNES  —  c'est ici que vous modifiez les flux
-   ---------------------------------------------------------------------
-   type: "hls"   -> flux .m3u8 lu directement (contrôles complets)
-   type: "embed" -> lecteur officiel intégré (iframe)
-   type: "site"  -> le site officiel de la chaîne s'ouvre (pas de flux
-                    public utilisable sans jeton de sécurité)
-   site (facultatif) : proposé si le flux hls ne répond pas.
-
-   Pour passer une chaîne en lecture directe, remplacez par exemple :
-     { type: "site", site: "https://…" }
-   par
-     { type: "hls", url: "https://…/index.m3u8", site: "https://…" }
+   LISTE DES CHAÎNES
+   type: "hls"   -> flux .m3u8 lu directement dans le lecteur vidéo
+   type: "embed" -> affichage direct de la page dans le cadre (iframe)
    ===================================================================== */
 var CHANNELS = [
-  { name: "TF1", type: "site", site: "https://www.tf1.fr/tf1/direct",
+  { name: "TF1", type: "embed", 
+    url: "https://www.tf1.fr/tf1/direct", 
+    site: "https://www.tf1.fr/tf1/direct",
     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bc/Logo_TF1_2013.svg/500px-Logo_TF1_2013.svg.png" },
 
-  { name: "France 2", type: "site", site: "https://www.france.tv/france-2/direct.html",
+  { name: "France 2", type: "embed", 
+    url: "https://www.france.tv/france-2/direct.html", 
+    site: "https://www.france.tv/france-2/direct.html",
     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/France_2_2018.svg/500px-France_2_2018.svg.png" },
 
-  { name: "France 3", type: "site", site: "https://www.france.tv/france-3/direct.html",
+  { name: "France 3", type: "embed", 
+    url: "https://www.france.tv/france-3/direct.html", 
+    site: "https://www.france.tv/france-3/direct.html",
     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/France_3_2018.svg/960px-France_3_2018.svg.png" },
 
-  { name: "France 4", type: "site", site: "https://www.france.tv/france-4/direct.html",
+  { name: "France 4", type: "embed", 
+    url: "https://www.france.tv/france-4/direct.html", 
+    site: "https://www.france.tv/france-4/direct.html",
     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/France_4_2018.svg/960px-France_4_2018.svg.png" },
 
   { name: "Arte", type: "hls",
@@ -187,11 +186,13 @@ var CHANNELS = [
     site: "https://www.arte.tv/fr/direct/",
     logo: "https://api-cdn.arte.tv/img/v2/image/j4EoSJjX26uySVWdmt3EmS/1920x1080" },
 
-  { name: "Gulli", type: "site", site: "https://www.m6.fr/gulli",
+  { name: "Gulli", type: "embed", 
+    url: "https://www.m6.fr/gulli", 
+    site: "https://www.m6.fr/gulli",
     logo: "https://upload.wikimedia.org/wikipedia/fr/4/43/18._Gulli.png" },
 
   { name: "BFM TV", type: "hls",
-    url: "https://ncdn-live-bfm.pfd.sfr.net/shls/LIVE$BFM_TV/index.m3u8?end=END&start=LIVE",
+    url: "https://ncdn-live-bfm.pfd.sfr.net/shls/LIVE$BFM_TV/index.m3u8",
     site: "https://www.bfmtv.com/en-direct/",
     logo: "https://upload.wikimedia.org/wikipedia/commons/b/b6/Logo_BFM_TV_%282019%29.png" },
 
@@ -213,7 +214,7 @@ var hls = null, current = -1, session = 0, loadTimer = null, bannerTimer = null;
 var vol = 0.7, muted = false, pseudoFs = false, ovAction = null;
 
 function store(k, v) { try { localStorage.setItem('tvmaison.' + k, v); } catch (e) {} }
-function load(k) { try { return localStorage.getItem('tvmaison.' + k); } catch (e) { return null; } }
+function load(k) { try { return localStorage.getItem('tvmaison.' + k); } catch (e) {} }
 
 /* ---------- Grille de chaînes ---------- */
 var tiles = [];
@@ -296,7 +297,7 @@ function startEmbed(ch) {
   hideOverlay();
   frame.style.display = 'block';
   frame.src = ch.url;
-  showBanner(ch.name, 'Pour régler le son, utilisez la télécommande de la télévision.');
+  showBanner(ch.name, 'Utilisez la télécommande pour interagir avec le lecteur.');
 }
 
 function fail(ch) {
@@ -305,7 +306,7 @@ function fail(ch) {
   if (hls) { hls.destroy(); hls = null; }
   video.style.display = 'none';
   showOverlay('Cette chaîne ne répond pas',
-    'Le flux est peut-être coupé pour le moment. Choisissez une autre chaîne, ou appuyez de nouveau sur OK sur cette chaîne pour réessayer.',
+    'Le flux est peut-être coupé pour le moment. Choisissez une autre chaîne.',
     ch.site ? 'Ouvrir le site officiel' : null,
     ch.site ? function () { openSite(ch); } : null);
   if (ch.site && my === session) ovBtn.focus();
@@ -416,7 +417,7 @@ btnFull.onclick = function () { if (inFs()) exitFs(); else enterFs(); };
 document.addEventListener('fullscreenchange', syncFs);
 document.addEventListener('webkitfullscreenchange', syncFs);
 
-/* ---------- Changer de chaîne (touches CH+/CH−, haut/bas en plein écran) ---------- */
+/* ---------- Changer de chaîne ---------- */
 function zap(delta) {
   var n = CHANNELS.length;
   var i = current < 0 ? 0 : (current + delta + n) % n;
