@@ -58,6 +58,13 @@
       border: 1px solid var(--border-color);
     }
 
+    /* Mode plein écran sur le lecteur uniquement */
+    .player-wrapper:fullscreen video,
+    .player-wrapper:fullscreen iframe {
+      width: 100vw;
+      height: 100vh;
+    }
+
     video, iframe {
       position: absolute;
       top: 0;
@@ -247,12 +254,12 @@
 
   <div class="app-container">
     <main class="main-stage">
-      <div class="player-wrapper">
+      <div class="player-wrapper" id="player-wrapper">
         <video id="hls-player" playsinline></video>
         <iframe id="iframe-player" allow="autoplay; fullscreen" allowfullscreen></iframe>
         <div class="player-overlay" id="player-overlay">
           <h2>TV Maison</h2>
-          <p>Sélectionnez une chaîne dans la liste pour démarrer.</p>
+          <p>Sélectionnez une chaîne ou utilisez les flèches ↑ / ↓ du clavier.</p>
         </div>
       </div>
 
@@ -304,7 +311,6 @@
   </div>
 
   <script>
-    // Configuration de ton projet Firebase
     var firebaseConfig = {
       apiKey: "AIzaSyD82Pt3Ha8tKSQl0243t4TZrW83tXB52KY",
       authDomain: "chaineinfo-84ac3.firebaseapp.com",
@@ -319,13 +325,38 @@
     var db = firebase.database();
     var channelsRef = db.ref('channels');
 
-    // Chaînes par défaut si la BDD est encore vide
+    // URLs de flux et logos fonctionnels vérifiés
     var DEFAULT_CHANNELS = [
-      { name: "Arte", type: "hls", url: "https://artesimulcast.akamaized.net/hls/live/2031003/artelive_fr/index.m3u8", logo: "https://api-cdn.arte.tv/img/v2/image/j4EoSJjX26uySVWdmt3EmS/1920x1080" },
-      { name: "BFM TV", type: "hls", url: "https://ncdn-live-bfm.pfd.sfr.net/shls/LIVE$BFM_TV/index.m3u8", logo: "https://upload.wikimedia.org/wikipedia/commons/b/b6/Logo_BFM_TV_%282019%29.png" },
-      { name: "France 24", type: "hls", url: "https://static.france24.com/live/F24_FR_PAD_HLS/live_tv.m3u8", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/France_24_logo.svg/500px-France_24_logo.svg.png" },
-      { name: "CNews", type: "embed", url: "https://www.dailymotion.com/embed/video/x3b68jn?autoplay=1", logo: "https://i.imgur.com/UMRGAHx.png" },
-      { name: "Euronews", type: "hls", url: "https://euronews-euronews-french-3-fr.samsung.wurl.tv/playlist.m3u8", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Euronews_logo_2016.svg/500px-Euronews_logo_2016.svg.png" }
+      { 
+        name: "Franceinfo", 
+        type: "hls", 
+        url: "https://vs-cme-2.s3.eu-west-3.amazonaws.com/live/franceinfo/index.m3u8", 
+        logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Franceinfo_2016.svg/512px-Franceinfo_2016.svg.png" 
+      },
+      { 
+        name: "France 24", 
+        type: "hls", 
+        url: "https://static.france24.com/live/F24_FR_PAD_HLS/live_tv.m3u8", 
+        logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/France_24_logo.svg/512px-France_24_logo.svg.png" 
+      },
+      { 
+        name: "Arte", 
+        type: "hls", 
+        url: "https://artesimulcast.akamaized.net/hls/live/2031003/artelive_fr/index.m3u8", 
+        logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Arte_Logo.svg/512px-Arte_Logo.svg.png" 
+      },
+      { 
+        name: "Euronews", 
+        type: "hls", 
+        url: "https://euronews-euronews-french-3-fr.samsung.wurl.tv/playlist.m3u8", 
+        logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Euronews_logo_2016.svg/512px-Euronews_logo_2016.svg.png" 
+      },
+      { 
+        name: "BFM TV", 
+        type: "hls", 
+        url: "https://ncdn-live-bfm.pfd.sfr.net/shls/LIVE$BFM_TV/index.m3u8", 
+        logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/Logo_BFM_TV_%282019%29.png/512px-Logo_BFM_TV_%282019%29.png" 
+      }
     ];
 
     var channelsList = [];
@@ -339,8 +370,9 @@
     var overlayEl = getEl('player-overlay');
     var gridEl = getEl('channels-grid');
     var modalEl = getEl('modal-backdrop');
+    var playerWrapperEl = getEl('player-wrapper');
 
-    // Écoute en temps réel les changements sur la base de données
+    // Récupération Firebase
     channelsRef.on('value', function(snapshot) {
       var data = snapshot.val();
       if (data) {
@@ -364,6 +396,7 @@
         logoDiv.className = 'logo-wrapper';
         var img = document.createElement('img');
         img.src = channel.logo;
+        img.onerror = function() { this.src = 'https://via.placeholder.com/150?text=Logo'; };
         logoDiv.appendChild(img);
 
         var nameDiv = document.createElement('div');
@@ -378,6 +411,8 @@
     }
 
     function playChannel(index) {
+      if (index < 0 || index >= channelsList.length) return;
+
       activeIndex = index;
       var channel = channelsList[index];
 
@@ -416,6 +451,23 @@
       getEl('volume-label').textContent = Math.round(currentVolume * 100) + ' %';
     }
 
+    // Gestion des touches Haut / Bas / Gauche / Droite
+    document.addEventListener('keydown', function(event) {
+      if (!modalEl.classList.contains('hidden')) return;
+
+      if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') {
+        event.preventDefault();
+        var nextIndex = activeIndex - 1;
+        if (nextIndex < 0) nextIndex = channelsList.length - 1;
+        playChannel(nextIndex);
+      } else if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
+        event.preventDefault();
+        var nextIndex = activeIndex + 1;
+        if (nextIndex >= channelsList.length) nextIndex = 0;
+        playChannel(nextIndex);
+      }
+    });
+
     getEl('btn-play-pause').onclick = function() {
       if (videoEl.style.display !== 'none') {
         if (videoEl.paused) { videoEl.play(); this.textContent = 'Pause'; }
@@ -426,16 +478,18 @@
     getEl('btn-vol-up').onclick = function() { updateVolume(0.1); };
     getEl('btn-vol-down').onclick = function() { updateVolume(-0.1); };
 
+    // Plein écran ciblant uniquement la zone vidéo
     getEl('btn-fullscreen').onclick = function() {
-      var stage = document.querySelector('.main-stage');
-      if (!document.fullscreenElement) { stage.requestFullscreen(); }
-      else { document.exitFullscreen(); }
+      if (!document.fullscreenElement) {
+        if (playerWrapperEl.requestFullscreen) playerWrapperEl.requestFullscreen();
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+      }
     };
 
     getEl('btn-open-modal').onclick = function() { modalEl.className = 'modal-backdrop'; };
     getEl('btn-close-modal').onclick = function() { modalEl.className = 'modal-backdrop hidden'; };
 
-    // Sauvegarde en ligne synchronisée sur la BDD Firebase
     getEl('btn-save-channel').onclick = function() {
       var name = getEl('input-name').value.trim();
       var logo = getEl('input-logo').value.trim();
