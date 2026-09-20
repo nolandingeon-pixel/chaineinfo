@@ -82,7 +82,69 @@
       border: 0;
       display: none;
       background: #000;
+      filter: var(--img-filter, none);
     }
+
+    /* Panneau des radios */
+    .radio-panel {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      background: radial-gradient(circle at 50% 40%, #1d2a3a, #0d1117 70%);
+      z-index: 3;
+    }
+    .rp-logo {
+      width: 190px;
+      height: 125px;
+      background: var(--logo-background);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+    }
+    .rp-logo img { max-width: 90%; max-height: 90%; object-fit: contain; }
+    .rp-name { font-size: 1.9rem; font-weight: 700; }
+    .rp-tag { color: var(--text-muted); margin-top: -10px; }
+    .eq { display: flex; gap: 6px; align-items: flex-end; height: 40px; }
+    .eq i {
+      width: 8px;
+      height: 8px;
+      background: var(--active-color);
+      border-radius: 2px;
+      animation: eq 1s ease-in-out infinite;
+    }
+    .eq i:nth-child(2) { animation-delay: 0.15s; }
+    .eq i:nth-child(3) { animation-delay: 0.3s; }
+    .eq i:nth-child(4) { animation-delay: 0.45s; }
+    .eq i:nth-child(5) { animation-delay: 0.6s; }
+    @keyframes eq { 0%, 100% { height: 8px; } 50% { height: 38px; } }
+    @media (prefers-reduced-motion: reduce) { .eq i { animation: none; height: 22px; } }
+
+    /* Bandeau d'info à chaque changement de chaîne */
+    .zapinfo {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      z-index: 6;
+      display: none;
+      max-width: 80%;
+      padding: 8px 16px;
+      background: rgba(13, 17, 23, 0.85);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .player-wrapper.fs .zapinfo,
+    .player-wrapper:fullscreen .zapinfo { top: 96px; }
 
     .player-overlay {
       position: absolute;
@@ -92,12 +154,17 @@
       align-items: center;
       justify-content: center;
       text-align: center;
-      background: rgba(13, 17, 23, 0.92);
+      background: rgba(13, 17, 23, 0.94);
       z-index: 5;
       padding: 20px;
+      gap: 6px;
     }
-    .player-overlay p { max-width: 520px; line-height: 1.5; color: var(--text-muted); }
+    .player-overlay p { max-width: 560px; line-height: 1.5; color: var(--text-muted); margin: 8px 0; }
     .player-overlay.hidden { display: none; }
+    .big-clock { font-size: 5.5rem; font-weight: 300; letter-spacing: 2px; line-height: 1; }
+    .big-date { font-size: 1.3rem; color: var(--text-muted); text-transform: capitalize; }
+    .big-weather { font-size: 1.2rem; margin-bottom: 14px; min-height: 1.5em; }
+    .player-overlay h2 { margin: 6px 0 0; }
 
     /* Message d'état (chargement / erreur) */
     .status {
@@ -160,7 +227,7 @@
       align-items: center;
       padding-top: 10px;
       height: 60px;
-      gap: 10px;
+      gap: 8px;
     }
 
     .now-playing {
@@ -176,7 +243,7 @@
     }
     .now-playing strong { color: var(--text-main); }
 
-    .control-btn, .action-btn {
+    .control-btn, .action-btn, .tab-btn {
       font-family: inherit;
       color: var(--text-main);
       cursor: pointer;
@@ -191,11 +258,14 @@
 
     .control-bar .control-btn {
       height: 100%;
-      min-width: 150px;
+      min-width: 0;
+      padding: 0 14px;
+      white-space: nowrap;
+      font-size: 0.9rem;
     }
     .control-btn:disabled { opacity: 0.4; cursor: default; }
 
-    .control-btn:focus, .action-btn:focus, .tile-btn:focus {
+    .control-btn:focus, .action-btn:focus, .tile-btn:focus, .tab-btn:focus, .ep-btn:focus {
       outline: none;
       border-color: var(--focus-color);
       box-shadow: 0 0 8px var(--focus-color);
@@ -203,7 +273,7 @@
 
     .sidebar {
       flex: 3;
-      min-width: 260px;
+      min-width: 280px;
       display: flex;
       flex-direction: column;
       height: 100%;
@@ -217,8 +287,27 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 15px;
+      margin-bottom: 6px;
     }
+
+    .mini-info {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 12px;
+    }
+    .mini-info #mini-clock { color: var(--text-main); font-weight: 700; }
+
+    .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+    .tab-btn {
+      background: var(--bg-color);
+      color: var(--text-muted);
+      border-radius: 20px;
+      padding: 5px 13px;
+      font-size: 0.85rem;
+    }
+    .tab-btn.on { color: var(--text-main); border-color: var(--active-color); }
 
     .channels-grid {
       flex: 1;
@@ -229,8 +318,31 @@
       overflow-y: auto;
       padding: 4px;
     }
+    .channels-grid.list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .list-title { font-size: 1.1rem; font-weight: 700; padding: 4px 2px; }
+    .empty-msg { grid-column: 1 / -1; color: var(--text-muted); line-height: 1.5; padding: 10px 4px; }
+
+    .ep-btn {
+      font-family: inherit;
+      color: var(--text-main);
+      text-align: left;
+      background: var(--bg-color);
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+    .ep-btn.active { border-color: var(--active-color); color: var(--active-color); }
+    .ep-btn .ep-state { color: var(--text-muted); font-size: 0.8rem; margin-left: 8px; font-weight: 400; }
+    .action-btn.danger { background-color: #3a1d20; border-color: #6b2a30; }
 
     .tile-btn {
+      position: relative;
       width: 100%;
       height: 100%;
       padding: 0;
@@ -242,6 +354,19 @@
       border: 2px solid var(--border-color);
       cursor: pointer;
       font-family: inherit;
+    }
+
+    .tile-btn .num {
+      position: absolute;
+      top: 4px;
+      left: 6px;
+      z-index: 2;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #1b2430;
+      background: rgba(230, 235, 240, 0.9);
+      border-radius: 4px;
+      padding: 0 5px;
     }
 
     .tile-btn .logo-wrapper {
@@ -292,11 +417,13 @@
       border: 2px solid var(--border-color);
       border-radius: 12px;
       padding: 25px;
-      width: 420px;
+      width: 460px;
       max-width: 92vw;
+      max-height: 92vh;
+      overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 15px;
+      gap: 14px;
     }
 
     .form-group {
@@ -304,16 +431,21 @@
       flex-direction: column;
       gap: 5px;
     }
+    .form-row { display: flex; gap: 10px; }
+    .form-row .form-group { flex: 1; }
+    .form-hint { color: var(--text-muted); font-size: 0.85rem; line-height: 1.4; }
 
-    .form-group input, .form-group select {
+    .form-group input, .form-group select, .form-group textarea {
       background-color: var(--bg-color);
       border: 1px solid var(--border-color);
       color: var(--text-main);
       padding: 10px;
       border-radius: 6px;
       font-size: 0.95rem;
+      font-family: inherit;
     }
-    .form-group input:focus, .form-group select:focus {
+    .form-group textarea { min-height: 90px; resize: vertical; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
       outline: none;
       border-color: var(--focus-color);
     }
@@ -339,14 +471,18 @@
       border-radius: 8px;
       padding: 10px 18px;
       display: none;
+      max-width: 90vw;
     }
 
     @media (max-width: 900px) {
       html, body { overflow: auto; }
       .app-container { flex-direction: column; height: auto; min-height: 100vh; }
-      .main-stage { height: 56vw; min-height: 240px; flex: none; }
-      .sidebar { height: 60vh; flex: none; }
-      .control-bar .control-btn { min-width: 0; flex: 1; }
+      .main-stage { height: 62vw; min-height: 300px; flex: none; }
+      .control-bar { height: auto; flex-wrap: wrap; }
+      .control-bar .control-btn { height: 40px; }
+      .now-playing { flex-basis: 100%; }
+      .sidebar { height: 70vh; flex: none; }
+      .big-clock { font-size: 3.5rem; }
     }
   </style>
 </head>
@@ -358,10 +494,24 @@
         <video id="hls-player" playsinline></video>
         <iframe id="iframe-player" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
 
+        <div class="radio-panel" id="radio-panel">
+          <div class="rp-logo" id="rp-logo"></div>
+          <div class="rp-name" id="rp-name"></div>
+          <div class="rp-tag">Radio en direct</div>
+          <div class="eq"><i></i><i></i><i></i><i></i><i></i></div>
+        </div>
+
+        <div class="zapinfo" id="zapinfo"></div>
+
         <div class="player-overlay" id="player-overlay">
+          <div class="big-clock" id="big-clock"></div>
+          <div class="big-date" id="big-date"></div>
+          <div class="big-weather" id="big-weather"></div>
           <h2>TV Maison</h2>
-          <p>Choisissez une chaîne, ou changez de chaîne avec les flèches ↑ / ↓.<br>
-             Appuyez sur OK sur la chaîne en cours pour passer en plein écran, et sur Retour ou OK pour en sortir.</p>
+          <p>Choisissez une chaîne, une radio ou une série.<br>
+             Flèches ↑ / ↓ : changer de chaîne. Chiffres : aller à un numéro. OK sur la chaîne en cours : plein écran.<br>
+             Touches de couleur (ou Q / I / V / M) : qualité, image, veille, menu.</p>
+          <button id="btn-resume" class="action-btn" style="display:none;"></button>
         </div>
 
         <div class="status" id="status">
@@ -378,6 +528,9 @@
 
       <div class="control-bar">
         <div class="now-playing" id="now-playing">Aucune chaîne sélectionnée</div>
+        <button id="btn-quality" class="control-btn" disabled>Qualité : —</button>
+        <button id="btn-image" class="control-btn">Image : Normal</button>
+        <button id="btn-sleep" class="control-btn">Veille : off</button>
         <button id="btn-play-pause" class="control-btn">Pause</button>
         <button id="btn-fullscreen" class="control-btn">Plein écran</button>
       </div>
@@ -385,16 +538,19 @@
 
     <aside class="sidebar">
       <div class="sidebar-header">
-        <h1 style="margin:0; font-size:1.4rem;">Chaînes</h1>
+        <h1 style="margin:0; font-size:1.4rem;">TV Maison</h1>
         <button id="btn-open-modal" class="action-btn">+ Ajouter</button>
       </div>
+      <div class="mini-info"><span id="mini-clock"></span><span id="mini-weather"></span></div>
+      <div class="tabs" id="tabs"></div>
       <div class="channels-grid" id="channels-grid"></div>
     </aside>
   </div>
 
+  <!-- Ajout d'une chaîne ou d'une radio -->
   <div class="modal-backdrop hidden" id="modal-backdrop">
     <div class="modal-box">
-      <h3 style="margin:0;">Ajouter une chaîne</h3>
+      <h3 style="margin:0;">Ajouter une chaîne ou une radio</h3>
       <div class="form-group">
         <label for="input-name">Nom :</label>
         <input type="text" id="input-name" placeholder="Ex: Franceinfo">
@@ -407,12 +563,24 @@
         <label for="input-url">Flux ou intégration (URL) :</label>
         <input type="text" id="input-url" placeholder="https://...">
       </div>
-      <div class="form-group">
-        <label for="select-type">Type :</label>
-        <select id="select-type">
-          <option value="hls">Flux direct (.m3u8)</option>
-          <option value="embed">Intégration Web (Dailymotion)</option>
-        </select>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="select-type">Type :</label>
+          <select id="select-type">
+            <option value="hls">Flux direct (.m3u8)</option>
+            <option value="embed">Intégration Web (Dailymotion)</option>
+            <option value="audio">Radio (flux audio)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="select-cat">Catégorie :</label>
+          <select id="select-cat">
+            <option value="Info">Info</option>
+            <option value="Culture">Culture</option>
+            <option value="Jeunesse">Jeunesse</option>
+            <option value="Autres">Autres</option>
+          </select>
+        </div>
       </div>
       <div class="modal-actions">
         <button id="btn-save-channel" class="action-btn save">Enregistrer</button>
@@ -421,9 +589,53 @@
     </div>
   </div>
 
+  <!-- Ajout d'une série / d'épisodes -->
+  <div class="modal-backdrop hidden" id="modal-series">
+    <div class="modal-box">
+      <h3 style="margin:0;">Ajouter une série ou des épisodes</h3>
+      <div class="form-group">
+        <label for="series-name">Nom de la série :</label>
+        <input type="text" id="series-name" placeholder="Ex: Dragon Ball — Saison 1">
+        <span class="form-hint">Si le nom existe déjà, les épisodes sont ajoutés à cette série.</span>
+      </div>
+      <div class="form-group">
+        <label for="series-logo">Image (URL, facultatif) :</label>
+        <input type="text" id="series-logo" placeholder="https://...">
+      </div>
+      <div class="form-group">
+        <label for="series-lines">Épisodes (un par ligne) :</label>
+        <textarea id="series-lines" placeholder="Épisode 1 | https://archive.org/download/.../ep01.mp4&#10;https://archive.org/download/.../ep02.mp4"></textarea>
+        <span class="form-hint">Format « Titre | lien », ou juste le lien (le titre est alors « Épisode N »).</span>
+      </div>
+      <div class="form-group">
+        <label for="series-pattern">Ou un modèle de lien avec {n} ou {nn} :</label>
+        <input type="text" id="series-pattern" placeholder="https://archive.org/download/ma-serie/ep{nn}.mp4">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="series-from">Du n° :</label>
+          <input type="number" id="series-from" value="1" min="0">
+        </div>
+        <div class="form-group">
+          <label for="series-to">Au n° :</label>
+          <input type="number" id="series-to" value="10" min="0">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="btn-save-series" class="action-btn save">Enregistrer</button>
+        <button id="btn-close-series" class="action-btn cancel">Annuler</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
   <script>
+    /* ======================================================================
+       RÉGLAGES FACILES À MODIFIER
+       ====================================================================== */
+    var METEO = { name: 'Amiens', lat: 49.8941, lon: 2.2957 };   // ville de la météo
+
     var firebaseConfig = {
       apiKey: "AIzaSyD82Pt3Ha8tKSQl0243t4TZrW83tXB52KY",
       authDomain: "chaineinfo-84ac3.firebaseapp.com",
@@ -438,25 +650,28 @@
     var db = firebase.database();
     var channelsRef = db.ref('channels');
     var metaRef = db.ref('meta/defaultsVersion');
+    var seriesRef = db.ref('series');
+    var seriesMetaRef = db.ref('meta/seriesSeeded');
 
     /* Chaînes proposées par défaut.
        - Chaque chaîne a une liste de sources : si la première ne répond pas (ou ne démarre pas en 15 s),
-         la suivante est essayée automatiquement. Les intégrations (embed) sont placées en dernier
-         recours, car on ne peut pas savoir si elles ont réussi.
-       - "site" sert à récupérer automatiquement un logo si "logo" est vide ou ne s'affiche pas.
+         la suivante est essayée automatiquement.
+       - Types : "hls" (flux .m3u8), "embed" (intégration web), "audio" (radio), "toons" (chaîne des dessins animés).
        - Augmentez DEFAULTS_VERSION quand vous modifiez cette liste : elle sera alors resynchronisée
          une fois dans Firebase (vos chaînes ajoutées à la main sont conservées). */
-    var DEFAULTS_VERSION = 4;
+    var DEFAULTS_VERSION = 5;
 
     var EURONEWS = 'https://cdn-euronews.akamaized.net/live/eds/';
     var PARATV = 'https://raw.githubusercontent.com/Paradise-91/ParaTV/main/streams/';
     var BFM_SFR = 'https://ncdn-live-bfm.pfd.sfr.net/shls/';
+    var RADIOFRANCE = 'https://icecast.radiofrance.fr/';
 
-    function makeChannel(name, site, sources, logo) {
+    function makeChannel(name, site, sources, logo, category) {
       return {
         name: name,
         site: site,
         logo: logo || '',
+        category: category || '',
         type: sources[0][0],
         url: sources[0][1],
         alt: sources.slice(1).map(function(src) { return { type: src[0], url: src[1] }; })
@@ -468,110 +683,167 @@
         ["hls", "https://vs-cme-2.s3.eu-west-3.amazonaws.com/live/franceinfo/index.m3u8"],
         ["hls", PARATV + "francetv/franceinfo.m3u8"],
         ["embed", "https://www.youtube.com/embed/live_stream?channel=UCO6K_kkdP-lnSCiO3tPx7WA&autoplay=1"]
-      ], "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Franceinfo.svg/330px-Franceinfo.svg.png"),
+      ], "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Franceinfo.svg/330px-Franceinfo.svg.png", "Info"),
 
       makeChannel("France 24", "france24.com", [
         ["hls", "https://live.france24.com/hls/live/2037179/F24_FR_HI_HLS/master_2300.m3u8"],
         ["hls", "https://live.france24.com/hls/live/2037179-b/F24_FR_HI_HLS/master_2300.m3u8"],
         ["hls", "https://static.france24.com/live/F24_FR_PAD_HLS/live_tv.m3u8"]
-      ]),
+      ], "", "Info"),
 
       makeChannel("BFM TV", "bfmtv.com", [
         ["hls", BFM_SFR + "LIVE$BFM_TV/index.m3u8?start=LIVE&end=END"],
         ["hls", "https://live-cdn-stream-euw1.bfmtv.bct.nextradiotv.com/master.m3u8"]
-      ]),
+      ], "", "Info"),
 
       makeChannel("CNews", "cnews.fr", [
         ["embed", "https://www.dailymotion.com/embed/video/x3b68jn?autoplay=1"]
-      ]),
+      ], "", "Info"),
 
       makeChannel("BFM Business", "bfmtv.com", [
         ["hls", BFM_SFR + "LIVE$BFM_BUSINESS/index.m3u8?start=LIVE&end=END"],
         ["hls", "https://live-cdn-stream-euw1.bfmb.bct.nextradiotv.com/master.m3u8"]
-      ]),
+      ], "", "Info"),
 
       makeChannel("Euronews", "euronews.com", [
         ["hls", EURONEWS + "euronews-fr/25026/index.m3u8"],
         ["hls", "https://2f6c5bf4.wurl.com/master/f36d25e7e52f1ba8d7e56eb859c636563214f541/UmxheHhUVi1ldV9FdXJvbmV3c0ZyYW5jYWlzX0hMUw/playlist.m3u8"],
         ["hls", "https://euronews-euronews-french-3-fr.samsung.wurl.tv/playlist.m3u8"]
-      ]),
+      ], "", "Info"),
 
       makeChannel("Arte", "arte.tv", [
         ["hls", "https://artesimulcast.akamaized.net/hls/live/2031003/artelive_fr/index.m3u8"],
         ["hls", "https://artesimulcast.akamaized.net/hls/live/2031003/artelive_fr/master_v720.m3u8"],
         ["hls", "https://artesimulcast.akamaized.net/hls/live/2031003-b/artelive_fr/master_v720.m3u8"]
-      ]),
+      ], "", "Culture"),
 
       makeChannel("TV5Monde Info", "tv5monde.com", [
         ["hls", "https://ott.tv5monde.com/Content/HLS/Live/channel(info)/variant.m3u8"]
-      ]),
+      ], "", "Info"),
 
       makeChannel("20 Minutes TV", "20minutes.fr", [
         ["hls", "https://live-20minutestv.digiteka.com/1961167769/index.m3u8"]
-      ]),
+      ], "", "Info"),
 
       makeChannel("Le Figaro", "lefigaro.fr", [
         ["hls", "https://figarotv-live.freecaster.com/live/freecaster/figarotv.m3u8"],
         ["hls", "https://static.lefigaro.fr/secom/tnt.m3u8"]
-      ]),
+      ], "", "Info"),
 
-      makeChannel("KTO", "ktotv.com", [
-        ["hls", "https://live-kto.akamaized.net/hls/live/2033284/KTO/master.m3u8"]
-      ]),
+      // Chaîne virtuelle : enchaîne au hasard les épisodes de l'onglet Séries, comme un vrai direct
+      makeChannel("Dessins animés", "", [
+        ["toons", "toons://mix"]
+      ], "", "Jeunesse"),
 
-      makeChannel("Equidia", "equidia.fr", [
-        ["hls", PARATV + "equidia/live2.m3u8"]
-      ]),
-
-      makeChannel("Africanews", "africanews.com", [
-        ["hls", EURONEWS + "africanews-fr/25050/index.m3u8"]
-      ]),
-
-      makeChannel("TéléGohelle", "telegohelle.fr", [
-        ["hls", "https://videas.agglo-lenslievin.fr/index.m3u8"]
-      ]),
-
-      makeChannel("TVR Bretagne", "tvr.bzh", [
-        ["hls", "https://streamtv.cdn.dvmr.fr/TVR/ngrp:tvr.stream_all/master.m3u8"]
-      ]),
-
-      makeChannel("TV78", "tv78.com", [
-        ["hls", "https://streamtv.cdn.dvmr.fr/TV78/ngrp:tv78.stream_all/master.m3u8"]
-      ])
+      // Radios (flux officiels Radio France)
+      makeChannel("France Inter", "franceinter.fr", [
+        ["audio", RADIOFRANCE + "franceinter-midfi.mp3"],
+        ["audio", RADIOFRANCE + "franceinter-hifi.aac"]
+      ], "", "Radios"),
+      makeChannel("Franceinfo (radio)", "franceinfo.fr", [
+        ["audio", RADIOFRANCE + "franceinfo-midfi.mp3"],
+        ["audio", RADIOFRANCE + "franceinfo-hifi.aac"]
+      ], "", "Radios"),
+      makeChannel("France Culture", "radiofrance.fr", [
+        ["audio", RADIOFRANCE + "franceculture-midfi.mp3"],
+        ["audio", RADIOFRANCE + "franceculture-hifi.aac"]
+      ], "", "Radios"),
+      makeChannel("France Musique", "francemusique.fr", [
+        ["audio", RADIOFRANCE + "francemusique-midfi.mp3"],
+        ["audio", RADIOFRANCE + "francemusique-hifi.aac"]
+      ], "", "Radios"),
+      makeChannel("FIP", "fip.fr", [
+        ["audio", RADIOFRANCE + "fip-midfi.mp3"],
+        ["audio", RADIOFRANCE + "fip-hifi.aac"]
+      ], "", "Radios"),
+      makeChannel("Mouv'", "mouv.fr", [
+        ["audio", RADIOFRANCE + "mouv-midfi.mp3"],
+        ["audio", RADIOFRANCE + "mouv-hifi.aac"]
+      ], "", "Radios")
     ];
 
     // Chaînes retirées de la liste par défaut : elles sont supprimées de Firebase à la resynchronisation
     var REMOVED_CHANNELS = [
+      "KTO", "Equidia", "Africanews", "TéléGohelle", "TVR Bretagne", "TV78",
       "France 24 English", "France 24 Español", "France 24 عربي",
       "Euronews English", "Euronews Español", "Euronews Deutsch",
-      "Africanews English", "Al Jazeera English", "DW English", "Bloomberg Europe", "NASA TV"
+      "Al Jazeera English", "DW English", "Bloomberg Europe", "NASA TV"
     ];
 
+    /* Séries proposées la toute première fois (ensuite tout est dans Firebase, sous « series »).
+       Vous pouvez en ajouter depuis le site : onglet Séries, bouton « + Série ». */
+    var DEFAULT_SERIES = [
+      {
+        name: "Dragon Ball — Saison 1",
+        logo: "",
+        episodes: [
+          {
+            title: "Épisode 1",
+            url: "https://archive.org/download/dragon-ball-saison-1-anime-sama-streaming-et-catalogage-danimes-et-scans/Dragon%20Ball%20-%20Saison%201%20Anime-Sama%20-%20Streaming%20Et%20Catalogage%20Danimes%20Et%20Scans.mp4"
+          }
+        ]
+      }
+    ];
+
+    /* ======================================================================
+       ÉTAT
+       ====================================================================== */
     var channelsList = [];
-    var activeIndex = -1;
+    var seriesList = [];
+    var seriesLoaded = false;
+    var activeIndex = -1;               // chaîne active (index dans channelsList)
+    var session = { kind: 'none' };     // none | channel | toons | episode
     var channelState = 'idle';          // idle | loading | playing | error
+    var mediaMode = 'none';             // none | video | audio | embed
     var hlsPlayerInstance = null;
     var fsActive = false;
     var fsAt = 0;
     var fsBarTimer = null;
     var toastTimer = null;
+    var zapTimer = null;
     var appStarted = false;
+    var currentTab = 'Tout';
+    var viewSeries = -1;                // série dont on affiche les épisodes (-1 = liste des séries)
+    var tabBtns = {};
 
     function getEl(id) { return document.getElementById(id); }
     var videoEl = getEl('hls-player');
     var iframeEl = getEl('iframe-player');
     var overlayEl = getEl('player-overlay');
     var gridEl = getEl('channels-grid');
+    var tabsEl = getEl('tabs');
     var modalEl = getEl('modal-backdrop');
+    var seriesModalEl = getEl('modal-series');
     var playerWrapperEl = getEl('player-wrapper');
     var statusEl = getEl('status');
     var statusTextEl = getEl('status-text');
     var retryBtn = getEl('btn-retry');
     var pauseBtn = getEl('btn-play-pause');
+    var qualityBtn = getEl('btn-quality');
+    var imageBtn = getEl('btn-image');
+    var sleepBtn = getEl('btn-sleep');
+    var openModalBtn = getEl('btn-open-modal');
+    var resumeBtn = getEl('btn-resume');
     var nowPlayingEl = getEl('now-playing');
     var fsTitleEl = getEl('fs-title');
+    var zapEl = getEl('zapinfo');
+    var radioPanelEl = getEl('radio-panel');
+    var radioLogoEl = getEl('rp-logo');
+    var radioNameEl = getEl('rp-name');
 
     /* ---------- Petits utilitaires ---------- */
+
+    function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+    function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+    function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
+
+    function pad2(n) { return (n < 10 ? '0' : '') + n; }
+    function fmtTime(sec) {
+      sec = Math.max(0, Math.floor(sec));
+      var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+      return (h ? h + ':' + pad2(m) : m) + ':' + pad2(s);
+    }
+    function clone(x) { return JSON.parse(JSON.stringify(x)); }
 
     function showToast(msg) {
       var t = getEl('toast');
@@ -579,6 +851,13 @@
       t.style.display = 'block';
       clearTimeout(toastTimer);
       toastTimer = setTimeout(function() { t.style.display = 'none'; }, 4500);
+    }
+
+    function showZap(text) {
+      zapEl.textContent = text;
+      zapEl.style.display = 'block';
+      clearTimeout(zapTimer);
+      zapTimer = setTimeout(function() { zapEl.style.display = 'none'; }, 3500);
     }
 
     function setStatus(text, withRetry) {
@@ -589,6 +868,54 @@
     }
 
     function keyOf(name) { return String(name).toLowerCase().replace(/\s+/g, ' ').trim(); }
+
+    /* ---------- Horloge et météo (Open-Meteo, gratuit, sans clé) ---------- */
+
+    var miniClockEl = getEl('mini-clock');
+    var miniWeatherEl = getEl('mini-weather');
+    var bigClockEl = getEl('big-clock');
+    var bigDateEl = getEl('big-date');
+    var bigWeatherEl = getEl('big-weather');
+
+    function tickClock() {
+      var d = new Date();
+      var hm = pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+      miniClockEl.textContent = hm;
+      bigClockEl.textContent = hm;
+      bigDateEl.textContent = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    }
+
+    function weatherInfo(code) {
+      if (code === 0) return ['☀️', 'Dégagé'];
+      if (code === 1 || code === 2) return ['🌤️', 'Éclaircies'];
+      if (code === 3) return ['☁️', 'Couvert'];
+      if (code === 45 || code === 48) return ['🌫️', 'Brouillard'];
+      if (code >= 51 && code <= 57) return ['🌦️', 'Bruine'];
+      if (code >= 61 && code <= 67) return ['🌧️', 'Pluie'];
+      if (code >= 71 && code <= 77) return ['❄️', 'Neige'];
+      if (code >= 80 && code <= 82) return ['🌧️', 'Averses'];
+      if (code === 85 || code === 86) return ['❄️', 'Averses de neige'];
+      if (code >= 95) return ['⛈️', 'Orage'];
+      return ['🌡️', 'Météo'];
+    }
+
+    function loadWeather() {
+      if (!window.fetch) return;
+      var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + METEO.lat + '&longitude=' + METEO.lon +
+                '&current=temperature_2m,weather_code&timezone=auto';
+      fetch(url).then(function(r) { return r.json(); }).then(function(d) {
+        if (!d || !d.current) return;
+        var w = weatherInfo(d.current.weather_code);
+        var t = Math.round(d.current.temperature_2m);
+        miniWeatherEl.textContent = w[0] + ' ' + t + '°C';
+        bigWeatherEl.textContent = w[0] + ' ' + t + '°C · ' + w[1] + ' · ' + METEO.name;
+      }).catch(function() {});
+    }
+
+    tickClock();
+    setInterval(tickClock, 1000);
+    loadWeather();
+    setInterval(loadWeather, 20 * 60 * 1000);
 
     /* ---------- Logos : plusieurs sources, puis pastille avec les initiales ---------- */
 
@@ -656,7 +983,7 @@
       return img;
     }
 
-    /* ---------- Liste des chaînes (Firebase) ---------- */
+    /* ---------- Chaînes (Firebase) ---------- */
 
     function normalizeList(data) {
       if (!data) return [];
@@ -670,7 +997,7 @@
       var used = {};
       var out = DEFAULT_CHANNELS.map(function(d) {
         used[keyOf(d.name)] = true;
-        return JSON.parse(JSON.stringify(d));
+        return clone(d);
       });
       REMOVED_CHANNELS.forEach(function(n) { used[keyOf(n)] = true; });
       list.forEach(function(c) {
@@ -692,7 +1019,9 @@
           if (list[i].url === activeUrl) { activeIndex = i; break; }
         }
       }
-      renderChannelsGrid();
+      renderTabs();
+      renderSidebar();
+      updateResumeBtn();
     }
 
     function startApp(list) {
@@ -728,22 +1057,143 @@
     // Si Firebase ne répond pas, on affiche quand même les chaînes par défaut
     setTimeout(function() { if (!appStarted) startApp(mergeDefaults([])); }, 8000);
 
-    /* ---------- Grille ---------- */
+    /* ---------- Séries (Firebase) ---------- */
+
+    function epsOf(s) {
+      var e = s.episodes;
+      if (!e) return [];
+      var arr = Array.isArray(e) ? e : Object.keys(e).map(function(k) { return e[k]; });
+      return arr.filter(function(x) { return x && x.url; }).map(function(x) {
+        return { title: x.title || 'Épisode', url: x.url };
+      });
+    }
+
+    function normalizeSeries(data) {
+      if (!data) return [];
+      var arr = Array.isArray(data) ? data : Object.keys(data).map(function(k) { return data[k]; });
+      return arr.filter(function(s) { return s && s.name; }).map(function(s) {
+        return { name: s.name, logo: s.logo || '', episodes: epsOf(s) };
+      });
+    }
+
+    function setSeries(list) {
+      if (seriesLoaded && JSON.stringify(list) === JSON.stringify(seriesList)) return;
+      seriesLoaded = true;
+      seriesList = list;
+      if (viewSeries >= list.length) viewSeries = -1;
+      renderTabs();
+      renderSidebar();
+      updateResumeBtn();
+    }
+
+    function saveSeries() {
+      seriesRef.set(cleanForFirebase(seriesList)).catch(function() {
+        showToast('Enregistré ici, mais pas dans Firebase (vérifiez les règles de la base).');
+      });
+    }
+
+    Promise.all([
+      seriesRef.once('value'),
+      seriesMetaRef.once('value').catch(function() { return null; })
+    ]).then(function(res) {
+      var list = normalizeSeries(res[0].val());
+      var seeded = res[1] ? res[1].val() : false;
+      if (!list.length && !seeded) {
+        list = clone(DEFAULT_SERIES);
+        seriesRef.set(cleanForFirebase(list)).catch(function(e) { console.warn('Firebase (séries) :', e); });
+        seriesMetaRef.set(true).catch(function() {});
+      }
+      setSeries(list);
+      seriesRef.on('value', function(snap) { setSeries(normalizeSeries(snap.val())); }, function(err) {
+        console.warn('Firebase (séries, écoute) :', err);
+      });
+    }).catch(function(err) {
+      console.warn('Séries : Firebase indisponible, liste locale utilisée :', err);
+      setSeries(clone(DEFAULT_SERIES));
+    });
+
+    setTimeout(function() { if (!seriesLoaded) setSeries(clone(DEFAULT_SERIES)); }, 8000);
+
+    /* ---------- Onglets ---------- */
+
+    var CATEGORY_ORDER = ['Info', 'Culture', 'Jeunesse', 'Radios', 'Autres'];
+
+    function catOf(c) { return c.category || (c.type === 'audio' ? 'Radios' : 'Autres'); }
+
+    function tabList() {
+      var present = {};
+      channelsList.forEach(function(c) { present[catOf(c)] = true; });
+      var tabs = ['Tout'];
+      CATEGORY_ORDER.forEach(function(n) { if (present[n]) tabs.push(n); });
+      Object.keys(present).forEach(function(n) { if (CATEGORY_ORDER.indexOf(n) < 0) tabs.push(n); });
+      tabs.push('Séries');
+      return tabs;
+    }
+
+    function renderTabs() {
+      var tabs = tabList();
+      if (tabs.indexOf(currentTab) < 0) currentTab = 'Tout';
+      tabsEl.innerHTML = '';
+      tabBtns = {};
+      tabs.forEach(function(name) {
+        var b = document.createElement('button');
+        b.className = 'tab-btn' + (name === currentTab ? ' on' : '');
+        b.textContent = name;
+        b.onclick = function() { setTab(name, true); };
+        tabsEl.appendChild(b);
+        tabBtns[name] = b;
+      });
+      openModalBtn.textContent = (currentTab === 'Séries') ? '+ Série' : '+ Ajouter';
+    }
+
+    function setTab(name, focusTab) {
+      currentTab = name;
+      viewSeries = -1;
+      renderTabs();
+      renderSidebar();
+      if (focusTab && tabBtns[name]) tabBtns[name].focus();
+    }
+
+    function visibleChannelIndexes() {
+      var out = [];
+      for (var i = 0; i < channelsList.length; i++) {
+        if (currentTab === 'Tout' || currentTab === 'Séries' || catOf(channelsList[i]) === currentTab) out.push(i);
+      }
+      return out;
+    }
+
+    /* ---------- Colonne de droite : chaînes, séries, épisodes ---------- */
+
+    function renderSidebar() {
+      if (currentTab === 'Séries') {
+        if (viewSeries > -1 && seriesList[viewSeries]) renderEpisodes(viewSeries);
+        else renderSeriesGrid();
+      } else {
+        renderChannelsGrid();
+      }
+    }
 
     function renderChannelsGrid() {
       var focusIdx = -1;
       var ae = document.activeElement;
-      if (ae && ae.classList && ae.classList.contains('tile-btn')) {
+      if (ae && ae.classList && ae.classList.contains('tile-btn') && ae.hasAttribute('data-index')) {
         focusIdx = parseInt(ae.getAttribute('data-index'), 10);
       }
 
+      gridEl.className = 'channels-grid';
       gridEl.innerHTML = '';
-      channelsList.forEach(function(channel, index) {
+      var focusTile = null;
+      visibleChannelIndexes().forEach(function(index) {
+        var channel = channelsList[index];
         var btn = document.createElement('button');
         btn.className = 'tile-btn' + (index === activeIndex ? ' active' : '');
         btn.setAttribute('data-index', index);
-        btn.title = channel.name;
+        btn.title = (index + 1) + ' · ' + channel.name;
         btn.onclick = function() { onTileClick(index); };
+
+        var num = document.createElement('span');
+        num.className = 'num';
+        num.textContent = index + 1;
 
         var logoDiv = document.createElement('div');
         logoDiv.className = 'logo-wrapper';
@@ -753,23 +1203,134 @@
         nameDiv.className = 'channel-name';
         nameDiv.textContent = channel.name;
 
+        btn.appendChild(num);
+        btn.appendChild(logoDiv);
+        btn.appendChild(nameDiv);
+        gridEl.appendChild(btn);
+        if (index === focusIdx) focusTile = btn;
+      });
+
+      if (focusTile) focusTile.focus();
+    }
+
+    function renderSeriesGrid() {
+      gridEl.className = 'channels-grid';
+      gridEl.innerHTML = '';
+      if (!seriesList.length) {
+        var empty = document.createElement('div');
+        empty.className = 'empty-msg';
+        empty.textContent = 'Aucune série pour le moment. Utilisez « + Série » pour ajouter vos épisodes (liens MP4).';
+        gridEl.appendChild(empty);
+        return;
+      }
+      seriesList.forEach(function(s, i) {
+        var btn = document.createElement('button');
+        btn.className = 'tile-btn';
+        btn.setAttribute('data-si', i);
+        btn.title = s.name;
+        btn.onclick = function() { openSeries(i); };
+
+        var logoDiv = document.createElement('div');
+        logoDiv.className = 'logo-wrapper';
+        logoDiv.appendChild(buildLogo({ name: s.name, logo: s.logo, site: '' }));
+
+        var nameDiv = document.createElement('div');
+        nameDiv.className = 'channel-name';
+        nameDiv.textContent = s.name + ' (' + s.episodes.length + ')';
+
         btn.appendChild(logoDiv);
         btn.appendChild(nameDiv);
         gridEl.appendChild(btn);
       });
+    }
 
-      if (focusIdx > -1 && gridEl.children[focusIdx]) gridEl.children[focusIdx].focus();
+    function openSeries(i) {
+      viewSeries = i;
+      renderSidebar();
+    }
+
+    function renderEpisodes(si) {
+      var s = seriesList[si];
+      gridEl.className = 'channels-grid list';
+      gridEl.innerHTML = '';
+
+      var back = document.createElement('button');
+      back.className = 'action-btn ep-nav';
+      back.textContent = '← Toutes les séries';
+      back.onclick = function() { viewSeries = -1; renderSidebar(); };
+      gridEl.appendChild(back);
+
+      var title = document.createElement('div');
+      title.className = 'list-title';
+      title.textContent = s.name;
+      gridEl.appendChild(title);
+
+      var focusBtn = null;
+      s.episodes.forEach(function(ep, ei) {
+        var b = document.createElement('button');
+        b.className = 'ep-btn ep-nav';
+        b.setAttribute('data-ei', ei);
+        b.appendChild(document.createTextNode(ep.title));
+
+        var pos = parseInt(lsGet('pos:' + ep.url) || '0', 10) || 0;
+        var done = lsGet('done:' + ep.url) === '1';
+        var st = document.createElement('span');
+        st.className = 'ep-state';
+        if (pos > 0) st.textContent = 'reprise à ' + fmtTime(pos);
+        else if (done) st.textContent = '✓ vu';
+        if (st.textContent) b.appendChild(st);
+
+        b.onclick = function() { playEpisode(si, ei); };
+        gridEl.appendChild(b);
+        if (!focusBtn && (pos > 0 || !done)) focusBtn = b;
+      });
+
+      var del = document.createElement('button');
+      del.className = 'action-btn danger ep-nav';
+      del.textContent = 'Supprimer cette série';
+      del.onclick = function() {
+        if (!window.confirm('Supprimer « ' + s.name + ' » et tous ses épisodes de la liste ?\n(Les fichiers eux-mêmes ne sont pas effacés sur archive.org.)')) return;
+        seriesList.splice(si, 1);
+        viewSeries = -1;
+        saveSeries();
+        renderTabs();
+        renderSidebar();
+      };
+      gridEl.appendChild(del);
+
+      updateEpActive();
+      if (!focusBtn) focusBtn = gridEl.querySelector('.ep-btn');
+      if (focusBtn) { focusBtn.focus(); if (focusBtn.scrollIntoView) focusBtn.scrollIntoView({ block: 'nearest' }); }
+    }
+
+    function updateEpActive() {
+      var els = gridEl.querySelectorAll('.ep-btn');
+      for (var i = 0; i < els.length; i++) {
+        var on = session.kind === 'episode' && viewSeries === session.si &&
+                 parseInt(els[i].getAttribute('data-ei'), 10) === session.ei;
+        els[i].classList.toggle('active', on);
+      }
     }
 
     function setActiveTile(index, takeFocus) {
-      for (var i = 0; i < gridEl.children.length; i++) {
-        gridEl.children[i].classList.toggle('active', i === index);
+      var tiles = gridEl.querySelectorAll('.tile-btn[data-index]');
+      var target = null;
+      for (var i = 0; i < tiles.length; i++) {
+        var on = parseInt(tiles[i].getAttribute('data-index'), 10) === index;
+        tiles[i].classList.toggle('active', on);
+        if (on) target = tiles[i];
       }
-      var tile = gridEl.children[index];
-      if (tile) {
-        if (takeFocus && tile.focus) tile.focus();
-        if (tile.scrollIntoView) tile.scrollIntoView({ block: 'nearest' });
+      if (target) {
+        if (takeFocus && target.focus) target.focus();
+        if (target.scrollIntoView) target.scrollIntoView({ block: 'nearest' });
       }
+    }
+
+    function focusActiveItem() {
+      var el = null;
+      if (activeIndex > -1) el = gridEl.querySelector('.tile-btn[data-index="' + activeIndex + '"]');
+      else if (session.kind === 'episode') el = gridEl.querySelector('.ep-btn.active');
+      if (el && el.focus) el.focus();
     }
 
     function onTileClick(index) {
@@ -781,13 +1342,54 @@
       }
     }
 
-    /* ---------- Lecture ---------- */
+    /* ---------- « Reprendre » : dernière chose regardée ---------- */
+
+    function goChannel(i) { return function() { playChannel(i, false); }; }
+    function goEpisode(si, ei) { return function() { viewSeries = si; playEpisode(si, ei); }; }
+
+    function findLast() {
+      var raw = lsGet('last');
+      if (!raw) return null;
+      var l;
+      try { l = JSON.parse(raw); } catch (e) { return null; }
+      var i;
+      if (l.kind === 'channel') {
+        for (i = 0; i < channelsList.length; i++) {
+          if (channelsList[i].name === l.name) return { label: l.name, go: goChannel(i) };
+        }
+      } else if (l.kind === 'episode') {
+        for (i = 0; i < seriesList.length; i++) {
+          if (seriesList[i].name === l.series && seriesList[i].episodes[l.ep]) {
+            return { label: l.series + ' — ' + seriesList[i].episodes[l.ep].title, go: goEpisode(i, l.ep) };
+          }
+        }
+      }
+      return null;
+    }
+
+    function updateResumeBtn() {
+      var r = findLast();
+      if (!r) { resumeBtn.style.display = 'none'; return; }
+      resumeBtn.textContent = '▶ Reprendre : ' + r.label;
+      resumeBtn.onclick = r.go;
+      resumeBtn.style.display = 'inline-block';
+    }
+
+    /* ======================================================================
+       LECTURE
+       ====================================================================== */
 
     var playToken = 0;          // identifie la lecture en cours : les anciennes réponses sont ignorées
-    var attemptIndex = 0;       // source en cours d'essai pour la chaîne active
+    var attemptIndex = 0;       // source en cours d'essai
     var currentSources = [];
+    var currentTitle = '';
     var loadTimer = null;
     var autoMuted = false;      // vrai si le navigateur nous a forcés à couper le son
+    var pendingSeek = 0;        // position de reprise d'un épisode
+    var lastSaveAt = 0;
+    var toonsQueue = [];
+    var toonsPos = 0;
+    var toonsFails = 0;
 
     function sourcesOf(channel) {
       var list = [{ type: channel.type, url: channel.url }];
@@ -801,17 +1403,23 @@
 
     function stopPlayback() {
       clearTimeout(loadTimer);
+      mediaMode = 'none';
       if (hlsPlayerInstance) {
         hlsPlayerInstance.destroy();
         hlsPlayerInstance = null;
       }
       try { videoEl.pause(); } catch (e) {}
       videoEl.removeAttribute('src');
+      videoEl.controls = false;
       videoEl.load();
       iframeEl.onload = null;
       if (iframeEl.getAttribute('src') && iframeEl.getAttribute('src') !== 'about:blank') iframeEl.src = 'about:blank';
       videoEl.style.display = 'none';
       iframeEl.style.display = 'none';
+      radioPanelEl.style.display = 'none';
+      hlsLevels = [];
+      qualityChoice = -1;
+      updateQualityBtn();
     }
 
     function failPlayback(message) {
@@ -847,23 +1455,32 @@
       }
     }
 
-    // Passe à la source suivante de la chaîne, ou abandonne s'il n'y en a plus
+    // Passe à la source suivante, ou abandonne s'il n'y en a plus
     function nextSource(token) {
       if (token !== playToken) return;
       attemptIndex++;
       if (attemptIndex < currentSources.length) {
         startAttempt(token);
-      } else {
-        stopPlayback();
+        return;
+      }
+      stopPlayback();
+      // Chaîne « Dessins animés » : on saute l'épisode cassé et on passe au suivant
+      if (session.kind === 'toons' && toonsFails < 6) {
+        toonsFails++;
+        toonsNext();
+        return;
+      }
+      if (session.kind === 'channel') {
         failPlayback('Cette chaîne ne répond pas pour le moment (flux coupé, bloqué ou hors de votre région).');
+      } else {
+        failPlayback('Cette vidéo ne se charge pas (lien cassé ou serveur trop lent).');
       }
     }
 
     function startAttempt(token) {
       if (token !== playToken) return;
-      var channel = channelsList[activeIndex];
       var src = currentSources[attemptIndex];
-      if (!channel || !src) return;
+      if (!src) return;
 
       stopPlayback();
       videoEl.muted = false;
@@ -878,22 +1495,56 @@
         return;
       }
 
+      var shown = (session.kind === 'channel') ? currentTitle : 'la vidéo';
       var label = currentSources.length > 1 ? ' (source ' + (attemptIndex + 1) + '/' + currentSources.length + ')' : '';
-      setStatus('Chargement de ' + channel.name + label + '…', false);
+      setStatus('Chargement de ' + shown + label + '…', false);
 
       if (src.type === 'embed') {
+        mediaMode = 'embed';
         iframeEl.style.display = 'block';
         iframeEl.onload = function() { channelState = 'playing'; setStatus(''); };
         iframeEl.src = src.url;
         return;
       }
 
-      videoEl.style.display = 'block';
-      // Si rien ne démarre au bout de 15 s, on tente la source suivante
+      if (src.type === 'audio') {
+        mediaMode = 'audio';
+        radioLogoEl.innerHTML = '';
+        radioLogoEl.appendChild(buildLogo(channelsList[activeIndex] || { name: currentTitle }));
+        radioNameEl.textContent = currentTitle;
+        radioPanelEl.style.display = 'flex';
+      } else {
+        mediaMode = 'video';
+        videoEl.style.display = 'block';
+      }
+
+      // Si rien ne démarre au bout de 15 s (30 s pour un fichier MP4), on tente la source suivante
       loadTimer = setTimeout(function() {
         if (token === playToken && channelState !== 'playing') nextSource(token);
-      }, 15000);
+      }, src.type === 'mp4' ? 30000 : 15000);
 
+      // Fichier MP4 (épisode) ou flux audio : lecture directe
+      if (src.type === 'mp4' || src.type === 'audio') {
+        if (src.type === 'mp4' && session.kind === 'episode') {
+          videoEl.controls = true;
+          videoEl.setAttribute('controlsList', 'nofullscreen');
+          if (pendingSeek > 0) {
+            var seekTo = pendingSeek;
+            var onMeta = function() {
+              videoEl.removeEventListener('loadedmetadata', onMeta);
+              try { videoEl.currentTime = seekTo; } catch (e) {}
+            };
+            videoEl.addEventListener('loadedmetadata', onMeta);
+            showToast('Reprise à ' + fmtTime(seekTo));
+          }
+        }
+        pendingSeek = 0;
+        videoEl.src = src.url;
+        tryPlay(token);
+        return;
+      }
+
+      // Flux HLS
       if (window.Hls && Hls.isSupported()) {
         var started = false;
         var networkRetries = 0;
@@ -903,6 +1554,7 @@
           lowLatencyMode: false,
           maxBufferLength: 30,
           backBufferLength: 30,
+          abrEwmaDefaultEstimate: 5000000,     // suppose une bonne connexion au départ : démarre en haute qualité
           manifestLoadingMaxRetry: 1,
           manifestLoadingRetryDelay: 500,
           levelLoadingMaxRetry: 2,
@@ -910,7 +1562,16 @@
         });
         hlsPlayerInstance = hls;
 
-        hls.on(Hls.Events.MANIFEST_PARSED, function() { tryPlay(token); });
+        hls.on(Hls.Events.MANIFEST_PARSED, function() {
+          if (token !== playToken) return;
+          hlsLevels = hls.levels || [];
+          try { if (hlsLevels.length > 1) hls.startLevel = hlsLevels.length - 1; } catch (e) {}
+          updateQualityBtn();
+          tryPlay(token);
+        });
+        hls.on(Hls.Events.LEVEL_SWITCHED, function() {
+          if (token === playToken) updateQualityBtn();
+        });
         hls.on(Hls.Events.FRAG_LOADED, function() { started = true; networkRetries = 0; });
         hls.on(Hls.Events.ERROR, function(event, data) {
           if (token !== playToken || !data || !data.fatal) return;
@@ -936,63 +1597,302 @@
       }
     }
 
-    function playChannel(index, fromZap) {
-      if (index < 0 || index >= channelsList.length) return;
-
-      activeIndex = index;
-      var channel = channelsList[index];
+    // Point d'entrée commun de toutes les lectures
+    function beginPlayback(title, sources, banner) {
       playToken++;
-      currentSources = sourcesOf(channel);
+      currentTitle = title;
+      currentSources = sources;
       attemptIndex = 0;
 
       overlayEl.className = 'player-overlay hidden';
-      setActiveTile(index, fromZap && !fsActive);
-
       nowPlayingEl.innerHTML = '';
       var strong = document.createElement('strong');
-      strong.textContent = channel.name;
+      strong.textContent = title;
       nowPlayingEl.appendChild(strong);
-      fsTitleEl.textContent = channel.name;
+      fsTitleEl.textContent = title;
+      showZap(banner || title);
       if (fsActive) showFsBar();
 
       startAttempt(playToken);
     }
 
-    function zap(delta) {
-      var n = channelsList.length;
-      if (!n) return;
-      var next;
-      if (activeIndex < 0) next = delta > 0 ? 0 : n - 1;
-      else next = (activeIndex + delta + n) % n;
-      playChannel(next, true);
+    function playChannel(index, fromZap) {
+      if (index < 0 || index >= channelsList.length) return;
+
+      activeIndex = index;
+      var channel = channelsList[index];
+      lsSet('last', JSON.stringify({ kind: 'channel', name: channel.name }));
+      setActiveTile(index, fromZap && !fsActive);
+      updateEpActive();
+
+      var banner = (index + 1) + '   ' + channel.name;
+      if (channel.type === 'toons') { startToons(banner); return; }
+
+      session = { kind: 'channel' };
+      pendingSeek = 0;
+      beginPlayback(channel.name, sourcesOf(channel), banner);
     }
 
-    // Suivi de l'état réel du lecteur vidéo
+    function playEpisode(si, ei) {
+      var s = seriesList[si];
+      if (!s || !s.episodes[ei]) return;
+      var ep = s.episodes[ei];
+
+      activeIndex = -1;
+      setActiveTile(-1, false);
+      session = { kind: 'episode', si: si, ei: ei, url: ep.url };
+      pendingSeek = parseInt(lsGet('pos:' + ep.url) || '0', 10) || 0;
+      lsSet('last', JSON.stringify({ kind: 'episode', series: s.name, ep: ei }));
+
+      var title = s.name + ' — ' + ep.title;
+      beginPlayback(title, [{ type: 'mp4', url: ep.url }], title);
+      updateEpActive();
+    }
+
+    /* ---------- Chaîne « Dessins animés » (faux direct) ---------- */
+
+    function buildToonsQueue() {
+      var q = [];
+      seriesList.forEach(function(s) {
+        s.episodes.forEach(function(e) { q.push({ title: s.name + ' — ' + e.title, url: e.url }); });
+      });
+      for (var i = q.length - 1; i > 0; i--) {          // mélange aléatoire
+        var j = Math.floor(Math.random() * (i + 1));
+        var t = q[i]; q[i] = q[j]; q[j] = t;
+      }
+      return q;
+    }
+
+    function startToons(banner) {
+      toonsQueue = buildToonsQueue();
+      if (!toonsQueue.length) {
+        showToast('Aucun épisode : ajoutez d\'abord une série dans l\'onglet Séries.');
+        activeIndex = -1;
+        setActiveTile(-1, false);
+        return;
+      }
+      toonsPos = 0;
+      toonsFails = 0;
+      playToon(banner);
+    }
+
+    function playToon(banner) {
+      var item = toonsQueue[toonsPos];
+      session = { kind: 'toons' };
+      pendingSeek = 0;
+      var title = 'Dessins animés · ' + item.title;
+      beginPlayback(title, [{ type: 'mp4', url: item.url }], banner || title);
+    }
+
+    function toonsNext() {
+      toonsPos++;
+      if (toonsPos >= toonsQueue.length) { toonsQueue = buildToonsQueue(); toonsPos = 0; }
+      if (!toonsQueue.length) { showIdle(); return; }
+      playToon();
+    }
+
+    /* ---------- Zapping et épisodes ---------- */
+
+    function zap(delta) {
+      if (session.kind === 'episode') { stepEpisode(delta); return; }
+      var idx = visibleChannelIndexes();
+      var n = idx.length;
+      if (!n) return;
+      var pos = idx.indexOf(activeIndex);
+      var nextPos = (pos < 0) ? (delta > 0 ? 0 : n - 1) : (pos + delta + n) % n;
+      playChannel(idx[nextPos], true);
+    }
+
+    function stepEpisode(delta) {
+      var s = seriesList[session.si];
+      if (!s) return;
+      var ni = session.ei + delta;
+      if (ni < 0 || ni >= s.episodes.length) {
+        showToast(delta > 0 ? 'C\'était le dernier épisode.' : 'C\'est le premier épisode.');
+        return;
+      }
+      playEpisode(session.si, ni);
+    }
+
+    function seekBy(sec) {
+      if (mediaMode !== 'video' || !videoEl.duration) return;
+      videoEl.currentTime = Math.max(0, Math.min(videoEl.duration - 1, videoEl.currentTime + sec));
+      showZap((sec > 0 ? '⏩ +' : '⏪ −') + Math.abs(sec) + ' s   ' + fmtTime(videoEl.currentTime));
+    }
+
+    function showIdle() {
+      stopPlayback();
+      session = { kind: 'none' };
+      channelState = 'idle';
+      activeIndex = -1;
+      setActiveTile(-1, false);
+      updateEpActive();
+      setStatus('');
+      overlayEl.className = 'player-overlay';
+      nowPlayingEl.textContent = 'Aucune chaîne sélectionnée';
+      updateResumeBtn();
+    }
+
+    /* ---------- Suivi de l'état réel du lecteur ---------- */
+
+    function usesVideoEl() { return mediaMode === 'video' || mediaMode === 'audio'; }
+
     videoEl.addEventListener('playing', function() {
       clearTimeout(loadTimer);
       channelState = 'playing';
+      toonsFails = 0;
       setStatus('');
       pauseBtn.textContent = 'Pause';
     });
     videoEl.addEventListener('waiting', function() {
-      if (channelState !== 'error' && videoEl.style.display !== 'none') setStatus('Mise en mémoire tampon…', false);
+      if (channelState !== 'error' && usesVideoEl()) setStatus('Mise en mémoire tampon…', false);
     });
     videoEl.addEventListener('pause', function() {
-      if (videoEl.style.display !== 'none') pauseBtn.textContent = 'Lecture';
+      if (usesVideoEl()) pauseBtn.textContent = 'Lecture';
     });
     videoEl.addEventListener('play', function() { pauseBtn.textContent = 'Pause'; });
     videoEl.addEventListener('error', function() {
-      // Uniquement pour la lecture native (hls.js gère lui-même ses erreurs et ses reprises)
+      // Uniquement pour la lecture directe (hls.js gère lui-même ses erreurs et ses reprises)
       if (!hlsPlayerInstance && videoEl.getAttribute('src')) nextSource(playToken);
     });
 
+    // Mémorise la position toutes les 5 s pour reprendre un épisode là où on s'est arrêté
+    videoEl.addEventListener('timeupdate', function() {
+      if (session.kind !== 'episode' || !session.url) return;
+      var now = Date.now();
+      if (now - lastSaveAt < 5000) return;
+      lastSaveAt = now;
+      var t = videoEl.currentTime, d = videoEl.duration;
+      if (t > 15 && d && t < d - 30) lsSet('pos:' + session.url, String(Math.floor(t)));
+    });
+
+    // Fin d'un épisode : on passe au suivant ; fin d'un dessin animé du direct : on tire le suivant
+    videoEl.addEventListener('ended', function() {
+      if (session.kind === 'episode') {
+        lsDel('pos:' + session.url);
+        lsSet('done:' + session.url, '1');
+        var s = seriesList[session.si];
+        if (s && session.ei + 1 < s.episodes.length) {
+          showToast('Épisode suivant…');
+          playEpisode(session.si, session.ei + 1);
+        } else {
+          showToast('Fin de la série.');
+          if (fsActive) exitFullscreen();
+          showIdle();
+          if (currentTab === 'Séries' && viewSeries > -1) renderSidebar();
+        }
+      } else if (session.kind === 'toons') {
+        toonsNext();
+      }
+    });
+
     function togglePause() {
-      if (videoEl.style.display === 'none') return;
+      if (!usesVideoEl()) return;
       if (videoEl.paused) tryPlay(playToken); else videoEl.pause();
     }
 
     pauseBtn.onclick = togglePause;
-    retryBtn.onclick = function() { if (activeIndex > -1) playChannel(activeIndex, false); };
+    retryBtn.onclick = function() {
+      if (session.kind === 'episode') playEpisode(session.si, session.ei);
+      else if (session.kind === 'toons') { toonsFails = 0; toonsNext(); }
+      else if (activeIndex > -1) playChannel(activeIndex, false);
+    };
+
+    /* ---------- Qualité de l'image (flux HLS) ---------- */
+
+    var hlsLevels = [];
+    var qualityChoice = -1;      // -1 = automatique
+
+    function levelLabel(l) {
+      if (l.height) return l.height + 'p';
+      if (l.bitrate) return Math.round(l.bitrate / 1000) + ' kb/s';
+      return '?';
+    }
+
+    function updateQualityBtn() {
+      if (!hlsPlayerInstance || hlsLevels.length < 2) {
+        qualityBtn.textContent = 'Qualité : —';
+        qualityBtn.disabled = true;
+        return;
+      }
+      qualityBtn.disabled = false;
+      if (qualityChoice === -1) {
+        var cur = hlsPlayerInstance.currentLevel;
+        qualityBtn.textContent = 'Qualité : Auto' + ((cur >= 0 && hlsLevels[cur]) ? ' (' + levelLabel(hlsLevels[cur]) + ')' : '');
+      } else {
+        qualityBtn.textContent = 'Qualité : ' + levelLabel(hlsLevels[qualityChoice]);
+      }
+    }
+
+    function cycleQuality() {
+      if (!hlsPlayerInstance || hlsLevels.length < 2) {
+        showToast('Pas de choix de qualité pour cette source (flux unique, intégration, radio ou MP4).');
+        return;
+      }
+      var idx = [];
+      for (var i = 0; i < hlsLevels.length; i++) idx.push(i);
+      idx.sort(function(a, b) {
+        return ((hlsLevels[b].height || 0) - (hlsLevels[a].height || 0)) ||
+               ((hlsLevels[b].bitrate || 0) - (hlsLevels[a].bitrate || 0));
+      });
+      var order = [-1].concat(idx);                     // Auto, puis de la meilleure à la plus basse
+      var pos = order.indexOf(qualityChoice);
+      qualityChoice = order[(pos + 1) % order.length];
+      hlsPlayerInstance.currentLevel = qualityChoice;
+      updateQualityBtn();
+      showZap(qualityChoice === -1 ? 'Qualité automatique' : 'Qualité ' + levelLabel(hlsLevels[qualityChoice]));
+    }
+    qualityBtn.onclick = cycleQuality;
+
+    /* ---------- Modes d'image ---------- */
+
+    var IMG_MODES = [
+      { name: 'Normal', f: 'none' },
+      { name: 'Vif', f: 'contrast(1.08) saturate(1.3) brightness(1.02)' },
+      { name: 'Cinéma', f: 'contrast(1.12) saturate(0.88) brightness(0.96)' }
+    ];
+    var imgMode = parseInt(lsGet('imgMode') || '0', 10) || 0;
+    if (imgMode < 0 || imgMode >= IMG_MODES.length) imgMode = 0;
+
+    function applyImageMode() {
+      playerWrapperEl.style.setProperty('--img-filter', IMG_MODES[imgMode].f);
+      imageBtn.textContent = 'Image : ' + IMG_MODES[imgMode].name;
+    }
+    function cycleImage() {
+      imgMode = (imgMode + 1) % IMG_MODES.length;
+      lsSet('imgMode', String(imgMode));
+      applyImageMode();
+      showZap('Image : ' + IMG_MODES[imgMode].name);
+    }
+    imageBtn.onclick = cycleImage;
+    applyImageMode();
+
+    /* ---------- Minuterie de veille ---------- */
+
+    var SLEEP_STEPS = [0, 30, 60, 90];
+    var sleepIdx = 0;
+    var sleepTimer = null;
+
+    function cycleSleep() {
+      sleepIdx = (sleepIdx + 1) % SLEEP_STEPS.length;
+      var min = SLEEP_STEPS[sleepIdx];
+      clearTimeout(sleepTimer);
+      if (min) {
+        sleepBtn.textContent = 'Veille : ' + min + ' min';
+        showZap('Arrêt automatique dans ' + min + ' min');
+        sleepTimer = setTimeout(function() {
+          if (fsActive) exitFullscreen();
+          showIdle();
+          sleepIdx = 0;
+          sleepBtn.textContent = 'Veille : off';
+          showToast('Minuterie de veille : lecture arrêtée.');
+        }, min * 60 * 1000);
+      } else {
+        sleepBtn.textContent = 'Veille : off';
+        showZap('Minuterie de veille désactivée');
+      }
+    }
+    sleepBtn.onclick = cycleSleep;
 
     /* ---------- Plein écran (natif si possible, sinon simulé) ---------- */
 
@@ -1031,9 +1931,8 @@
         var ex = document.exitFullscreen || document.webkitExitFullscreen;
         if (ex) { try { var p = ex.call(document); if (p && p.catch) p.catch(function() {}); } catch (e) {} }
       }
-      // On redonne le focus à la chaîne en cours pour continuer à naviguer à la télécommande
-      var tile = gridEl.children[activeIndex];
-      if (tile && tile.focus) tile.focus();
+      // On redonne le focus à la chaîne (ou à l'épisode) en cours pour continuer à naviguer à la télécommande
+      focusActiveItem();
     }
 
     function toggleFullscreen() { if (fsActive) exitFullscreen(); else enterFullscreen(); }
@@ -1056,7 +1955,9 @@
     getEl('fs-hotzone').addEventListener('click', showFsBar);
     videoEl.addEventListener('dblclick', toggleFullscreen);
 
-    /* ---------- Télécommande / clavier ---------- */
+    /* ======================================================================
+       TÉLÉCOMMANDE / CLAVIER
+       ====================================================================== */
 
     function isBackKey(e) {
       var k = e.key, c = e.keyCode;
@@ -1064,15 +1965,60 @@
              c === 27 || c === 8 || c === 10009 /* Tizen */ || c === 461 /* webOS */ || c === 4 /* Android */ || c === 166;
     }
 
+    function anyModalOpen() {
+      return !modalEl.classList.contains('hidden') || !seriesModalEl.classList.contains('hidden');
+    }
+
+    // Saisie d'un numéro de chaîne (ex. 3 puis OK)
+    var digitBuffer = '';
+    var digitTimer = null;
+    function commitDigits() {
+      clearTimeout(digitTimer);
+      var n = parseInt(digitBuffer, 10);
+      digitBuffer = '';
+      if (n >= 1 && n <= channelsList.length) playChannel(n - 1, true);
+      else showZap('Chaîne introuvable');
+    }
+
+    // Déplacement du focus dans les onglets et dans la liste d'épisodes
+    function navTabs(delta) {
+      var names = Object.keys(tabBtns);
+      var pos = names.indexOf(currentTab);
+      var j = pos + delta;
+      if (j >= 0 && j < names.length) setTab(names[j], true);
+    }
+    function navList(delta) {
+      var items = gridEl.querySelectorAll('.ep-nav');
+      var arr = Array.prototype.slice.call(items);
+      var i = arr.indexOf(document.activeElement);
+      var j = i + delta;
+      if (j < 0) { if (tabBtns[currentTab]) tabBtns[currentTab].focus(); return; }
+      if (j >= arr.length) return;
+      arr[j].focus();
+      if (arr[j].scrollIntoView) arr[j].scrollIntoView({ block: 'nearest' });
+    }
+    function focusTabs() { if (tabBtns[currentTab]) tabBtns[currentTab].focus(); }
+
     document.addEventListener('keydown', function(e) {
       var k = e.key, c = e.keyCode;
 
-      if (!modalEl.classList.contains('hidden')) {
+      if (anyModalOpen()) {
         if (k === 'Escape' || c === 10009 || c === 461) closeModal();
         return;
       }
 
       var isEnter = (k === 'Enter' || c === 13);
+
+      // Numéro de chaîne
+      if (k && k.length === 1 && k >= '0' && k <= '9') {
+        e.preventDefault();
+        if (digitBuffer.length < 3) digitBuffer += k;
+        showZap('Chaîne ' + digitBuffer + '…');
+        clearTimeout(digitTimer);
+        digitTimer = setTimeout(commitDigits, 1500);
+        return;
+      }
+      if (isEnter && digitBuffer) { e.preventDefault(); commitDigits(); return; }
 
       // En plein écran : Retour ou OK = quitter (n'importe quelle touche ré-affiche la barre)
       if (fsActive) {
@@ -1082,6 +2028,41 @@
           if (!e.repeat && Date.now() - fsAt > 500) exitFullscreen();
           return;
         }
+      }
+
+      // Touches de couleur (et raccourcis clavier)
+      if (k === 'ColorF0Red' || c === 403 || k === 'q' || k === 'Q') { e.preventDefault(); cycleQuality(); return; }
+      if (k === 'ColorF1Green' || c === 404 || k === 'i' || k === 'I') { e.preventDefault(); cycleImage(); return; }
+      if (k === 'ColorF2Yellow' || c === 405 || k === 'v' || k === 'V') { e.preventDefault(); cycleSleep(); return; }
+      if (k === 'ColorF3Blue' || c === 406 || k === 'm' || k === 'M') { e.preventDefault(); if (!fsActive) focusTabs(); return; }
+
+      var ae = document.activeElement;
+      var onTab = ae && ae.classList && ae.classList.contains('tab-btn');
+      var onEp = ae && ae.classList && ae.classList.contains('ep-nav');
+
+      // Focus sur un onglet : gauche/droite changent d'onglet, bas entre dans la liste
+      if (onTab) {
+        if (k === 'ArrowLeft') { e.preventDefault(); navTabs(-1); return; }
+        if (k === 'ArrowRight') { e.preventDefault(); navTabs(1); return; }
+        if (k === 'ArrowDown') {
+          e.preventDefault();
+          var first = gridEl.querySelector('.ep-nav') || gridEl.querySelector('.tile-btn');
+          if (first) first.focus();
+          return;
+        }
+        if (k === 'ArrowUp') { e.preventDefault(); return; }
+      }
+
+      // Focus dans la liste d'épisodes : haut/bas se déplacent dans la liste
+      if (onEp) {
+        if (k === 'ArrowUp') { e.preventDefault(); navList(-1); return; }
+        if (k === 'ArrowDown') { e.preventDefault(); navList(1); return; }
+      }
+
+      // Pendant un épisode : gauche/droite = reculer/avancer de 10 s
+      if (session.kind === 'episode') {
+        if (k === 'ArrowLeft' || c === 412) { e.preventDefault(); seekBy(-10); return; }
+        if (k === 'ArrowRight' || c === 417) { e.preventDefault(); seekBy(10); return; }
       }
 
       if (k === 'ArrowUp' || k === 'ArrowLeft' || k === 'ChannelUp' || k === 'PageUp' || c === 427) {
@@ -1098,31 +2079,41 @@
       }
     });
 
-    /* ---------- Ajout d'une chaîne ---------- */
+    /* ======================================================================
+       AJOUTS (chaîne, radio, série)
+       ====================================================================== */
 
     function openModal() {
-      modalEl.className = 'modal-backdrop';
-      getEl('input-name').focus();
+      if (currentTab === 'Séries') {
+        seriesModalEl.className = 'modal-backdrop';
+        getEl('series-name').value = (viewSeries > -1 && seriesList[viewSeries]) ? seriesList[viewSeries].name : '';
+        getEl('series-name').focus();
+      } else {
+        modalEl.className = 'modal-backdrop';
+        getEl('input-name').focus();
+      }
     }
     function closeModal() {
       modalEl.className = 'modal-backdrop hidden';
-      var tile = gridEl.children[activeIndex];
-      if (tile && tile.focus) tile.focus();
+      seriesModalEl.className = 'modal-backdrop hidden';
+      focusActiveItem();
     }
 
-    getEl('btn-open-modal').onclick = openModal;
+    openModalBtn.onclick = openModal;
     getEl('btn-close-modal').onclick = closeModal;
+    getEl('btn-close-series').onclick = closeModal;
 
     getEl('btn-save-channel').onclick = function() {
       var name = getEl('input-name').value.trim();
       var logo = getEl('input-logo').value.trim();
       var url = getEl('input-url').value.trim();
       var type = getEl('select-type').value;
+      var category = (type === 'audio') ? 'Radios' : getEl('select-cat').value;
 
       if (!name || !url) { showToast('Le nom et l\'URL du flux sont obligatoires.'); return; }
       if (!/^https?:\/\//i.test(url)) { showToast('L\'URL doit commencer par http:// ou https://'); return; }
 
-      var updated = channelsList.concat([{ name: name, logo: logo, url: url, type: type, site: '' }]);
+      var updated = channelsList.concat([{ name: name, logo: logo, url: url, type: type, site: '', category: category }]);
       setChannels(updated);
       channelsRef.set(cleanForFirebase(updated)).catch(function() {
         showToast('Chaîne ajoutée ici, mais l\'enregistrement Firebase a échoué.');
@@ -1132,6 +2123,79 @@
       getEl('input-name').value = '';
       getEl('input-logo').value = '';
       getEl('input-url').value = '';
+    };
+
+    function parseEpisodeLines(text, startNumber) {
+      var out = [];
+      var lines = text.split('\n');
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i].trim();
+        if (!line) continue;
+        var title, url;
+        var bar = line.indexOf('|');
+        if (bar > -1) { title = line.slice(0, bar).trim(); url = line.slice(bar + 1).trim(); }
+        else { url = line; title = ''; }
+        if (!title) title = 'Épisode ' + (startNumber + out.length);
+        out.push({ title: title, url: url });
+      }
+      return out;
+    }
+
+    getEl('btn-save-series').onclick = function() {
+      var name = getEl('series-name').value.trim();
+      var logo = getEl('series-logo').value.trim();
+      var lines = getEl('series-lines').value;
+      var pattern = getEl('series-pattern').value.trim();
+      var from = parseInt(getEl('series-from').value, 10);
+      var to = parseInt(getEl('series-to').value, 10);
+
+      if (!name) { showToast('Donnez un nom à la série.'); return; }
+
+      var existingIdx = -1;
+      for (var i = 0; i < seriesList.length; i++) {
+        if (keyOf(seriesList[i].name) === keyOf(name)) { existingIdx = i; break; }
+      }
+      var already = existingIdx > -1 ? seriesList[existingIdx].episodes.length : 0;
+
+      var eps = [];
+      if (pattern) {
+        if (pattern.indexOf('{n}') < 0 && pattern.indexOf('{nn}') < 0) { showToast('Le modèle doit contenir {n} ou {nn}.'); return; }
+        if (isNaN(from) || isNaN(to) || to < from || to - from > 300) { showToast('Vérifiez les numéros de début et de fin (300 épisodes maximum).'); return; }
+        for (var n = from; n <= to; n++) {
+          var u = pattern.split('{nn}').join(pad2(n)).split('{n}').join(String(n));
+          eps.push({ title: 'Épisode ' + n, url: u });
+        }
+      }
+      eps = eps.concat(parseEpisodeLines(lines, already + eps.length + 1));
+
+      if (!eps.length) { showToast('Ajoutez au moins un épisode (lignes ou modèle de lien).'); return; }
+      for (var j = 0; j < eps.length; j++) {
+        eps[j].url = eps[j].url.replace(/ /g, '%20');
+        if (!/^https?:\/\//i.test(eps[j].url)) { showToast('Chaque lien doit commencer par http:// ou https:// : ' + eps[j].url.slice(0, 40)); return; }
+      }
+
+      if (existingIdx > -1) {
+        var target = seriesList[existingIdx];
+        var have = {};
+        target.episodes.forEach(function(e) { have[e.url] = true; });
+        eps.forEach(function(e) { if (!have[e.url]) target.episodes.push(e); });
+        if (logo) target.logo = logo;
+        viewSeries = existingIdx;
+      } else {
+        seriesList.push({ name: name, logo: logo, episodes: eps });
+        viewSeries = seriesList.length - 1;
+      }
+
+      saveSeries();
+      renderTabs();
+      renderSidebar();
+      updateResumeBtn();
+
+      closeModal();
+      getEl('series-name').value = '';
+      getEl('series-logo').value = '';
+      getEl('series-lines').value = '';
+      getEl('series-pattern').value = '';
     };
   </script>
 </body>
